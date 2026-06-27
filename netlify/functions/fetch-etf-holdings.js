@@ -216,7 +216,11 @@ async function fetchOneETF(etfConfig) {
 // "30 0,5 * * *" = 每天 UTC 00:30 和 05:30（= 台灣 08:30 / 13:30）各觸發一次
 const handler = async (event) => {
   const startTime = Date.now();
-  const store = getStore('etf-holdings');
+  const store = getStore({
+  name: 'etf-holdings',
+  siteID: process.env.NETLIFY_SITE_ID,
+  token: process.env.NETLIFY_AUTH_TOKEN,
+});
 
   const results = [];
   for (const etfConfig of TARGET_ETFS) {
