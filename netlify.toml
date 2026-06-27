@@ -1,0 +1,10 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Netlify Blobs 不需要額外設定即可使用（部署在 Netlify 上時自動可用）。
+# Scheduled Function 的排程是寫在 fetch-etf-holdings.js 程式碼內（用 schedule() 包裝），
+# Netlify 部署時會自動偵測並啟用，不需要在這裡額外宣告 cron。

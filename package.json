@@ -1,0 +1,9 @@
+{
+  "name": "tw-active-etf-radar",
+  "version": "1.0.0",
+  "description": "台股主動式ETF績效排行與跟單雷達 — 含每日自動抓取持股的 Netlify Scheduled Function",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^2.8.1"
+  }
+}
