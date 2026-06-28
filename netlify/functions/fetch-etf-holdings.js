@@ -92,7 +92,7 @@ const TARGET_ETFS = [
   },
 ];
 
-const DELAY_BETWEEN_REQUESTS_MS = 4000;
+const DELAY_BETWEEN_REQUESTS_MS = 500;
 const FETCH_TIMEOUT_MS = 15000;
 
 function sleep(ms) {
@@ -195,7 +195,7 @@ async function fetchOneETF(etfConfig) {
     }
 
     // 同一檔ETF嘗試下一個來源前也稍微延遲，避免對不同網站的請求過於密集
-    await sleep(1500);
+     await sleep(300);
   }
 
   // 全部來源都失敗
