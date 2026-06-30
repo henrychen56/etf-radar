@@ -333,7 +333,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
 .mo.open{display:flex;}
-.md{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:22px;max-width:500px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.8);}
+/* 對話框本身限制最大高度為視窗的90%，避免內容（尤其貼上大量文字後）把對話框撐到超出螢幕，
+   導致下方「解析並更新」按鈕被推到看不見的地方（這是先前回報的bug，手機上尤其明顯）。
+   改用 flex column + 內部捲動區域，讓標題與底部按鈕列永遠固定可見，只有中間內容可以滾動。*/
+.md{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  max-width:500px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.8);
+  max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
+}
+.md-scroll{padding:22px;overflow-y:auto;flex:1;min-height:0;}
+.md-actions{padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0;}
 .md h2{font-size:15px;margin-bottom:12px;color:var(--gold);}
 .md p{font-size:11px;color:var(--text2);line-height:1.75;margin-bottom:9px;}
 .md .mc{margin-top:12px;padding:6px 16px;background:var(--panel);border:1px solid var(--border2);border-radius:4px;color:var(--text2);cursor:pointer;font-size:11px;}
@@ -492,6 +501,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <!-- PASTE UPDATE MODAL -->
 <div class="mo" id="pasteModal">
   <div class="md" style="max-width:760px;">
+    <div class="md-scroll">
     <h2>📋 貼上最新持股資料</h2>
     <p style="color:var(--text2);">三個分頁各自的資料來源不同：①總表只有 etfinfo.tw 有提供（MoneyDJ無此功能）；②③則是10檔ETF皆可用 MoneyDJ，部分另有更即時的投信官網可選。點選分頁後，畫面會列出可用的查詢按鈕。</p>
 
@@ -554,11 +564,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
 
     <div id="parseResult" style="display:none;"></div>
-
-    <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="mc" style="background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;" onclick="parsePastedData()">⚡ 解析並更新</button>
-      <button class="mc" onclick="closePaste()">取消</button>
-      <button class="mc" style="margin-left:auto;color:var(--red);border-color:rgba(255,46,85,.3);" onclick="clearOverrides()">🗑️ 清除已貼上資料</button>
+    </div>
+    <div class="md-actions" style="display:flex;gap:8px;">
+      <button class="mc" style="background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;margin-top:0;" onclick="parsePastedData()">⚡ 解析並更新</button>
+      <button class="mc" style="margin-top:0;" onclick="closePaste()">取消</button>
+      <button class="mc" style="margin-top:0;margin-left:auto;color:var(--red);border-color:rgba(255,46,85,.3);" onclick="clearOverrides()">🗑️ 清除已貼上資料</button>
     </div>
   </div>
 </div>
@@ -987,7 +997,9 @@ function applyOverrides(){
       if(s.holdings.length >= 5) s.potential = true;
     });
   }
-  updateStatusBar(ov.timestamp);
+  // 改用 refreshFreshnessDisplay()，讓狀態列同時考慮自動抓取的時間，
+  // 而不是只看這次 override 裡的手動貼上時間（單獨呼叫 updateStatusBar(ov.timestamp) 會漏掉自動抓取的進度）
+  refreshFreshnessDisplay();
 }
 
 function updateStatusBar(ts){
@@ -1017,6 +1029,18 @@ function updateStatusBar(ts){
     icon.textContent = '🔴';
     text.textContent = `資料已過期：上次更新 ${dateStr}（超過${Math.floor(hoursSince/24)}天），請立即更新`;
   }
+}
+
+// 統一判斷「資料新鮮度」的進入點：比較「使用者手動貼上的時間」與「自動抓取最後成功時間」，
+// 取兩者中較新的一個來顯示。先前的 bug 是這個狀態列只看 localStorage 裡的手動貼上時間，
+// 完全不知道背景已經有自動抓取在跑，導致即使排程一直成功更新，左側狀態列仍顯示很舊的「已過期」訊息。
+let lastAutoFetchAt = null;
+function refreshFreshnessDisplay(){
+  const ov = loadOverrides();
+  const manualTs = ov && ov.timestamp ? new Date(ov.timestamp).getTime() : null;
+  const autoTs = lastAutoFetchAt ? new Date(lastAutoFetchAt).getTime() : null;
+  const latest = [manualTs, autoTs].filter(t => t !== null).sort((a,b)=>b-a)[0];
+  updateStatusBar(latest ? new Date(latest).toISOString() : null);
 }
 
 function clearOverrides(){
@@ -1959,6 +1983,10 @@ async function fetchLiveHoldings(){
     if(appliedCount > 0){
       // 用最新抓到的資料重新套用一次（會覆蓋掉先前 applyVerifiedHoldings() 寫入的舊快照）
       applyVerifiedHoldings();
+      // 記錄自動抓取成功的時間，並讓左側「資料新鮮度」狀態列也一併反映，
+      // 不再只看使用者手動貼上的時間（這是先前回報的bug：自動抓取明明成功，左側卻一直顯示「已過期8天」）
+      lastAutoFetchAt = data.lastRunAt || new Date().toISOString();
+      refreshFreshnessDisplay();
     }
 
     if(statusEl){
