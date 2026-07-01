@@ -1,2034 +1,1288 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>主動ETF績效榜 × 跟單雷達</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>第一名操盤日記 ・ 會員專區</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"></script>
 <style>
-:root{
-  --bg:#020509;--bg2:#050b12;--bg3:#080f1a;
-  --panel:#0b1522;--panel2:#101e30;
-  --border:#152438;--border2:#1c3250;
-  --gold:#ffc200;--gold2:#ffaa00;
-  --green:#00e87a;--red:#ff2e55;
-  --accent:#00c8ff;--accent2:#0077d4;
-  --purple:#b060ff;--teal:#00d4b4;--orange:#ff8800;
-  --rank1:#ffd700;--rank2:#c0c0c0;--rank3:#cd7f32;
-  --text:#d8eeff;--text2:#6a90b5;--text3:#2d4a62;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;overflow-x:hidden;min-height:100vh;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,200,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,.02) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
-
-/* ── HEADER ── */
-#hdr{position:sticky;top:0;z-index:300;background:rgba(2,5,9,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:54px;display:flex;align-items:center;gap:14px;padding:0 20px;}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;background:linear-gradient(120deg,var(--gold),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;}
-.logo span{-webkit-text-fill-color:var(--red);}
-.live{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;letter-spacing:2px;color:var(--green);background:rgba(0,232,122,.08);border:1px solid rgba(0,232,122,.25);border-radius:3px;padding:3px 8px;}
-.ldot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pd 1.5s ease-in-out infinite;}
-@keyframes pd{0%,100%{box-shadow:0 0 0 0 rgba(0,232,122,.5);}60%{box-shadow:0 0 0 5px rgba(0,232,122,0);}}
-.hdr-r{margin-left:auto;text-align:right;}
-.htime{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);}
-.hdate{font-size:10px;color:var(--text3);}
-
-/* ── TOOLBAR ── */
-#tb{position:sticky;top:54px;z-index:200;background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.sw{position:relative;flex:1;min-width:160px;max-width:320px;}
-.sw input{width:100%;background:var(--panel);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-size:12px;padding:7px 10px 7px 30px;outline:none;transition:all .2s;font-family:'Noto Sans TC',sans-serif;}
-.sw input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,200,255,.12);}
-.sw input::placeholder{color:var(--text3);}
-.sicon{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text3);}
-.ttabs{display:flex;gap:3px;}
-.tt{padding:5px 11px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s;font-family:'Noto Sans TC',sans-serif;font-weight:500;}
-.tt:hover{color:var(--text2);}
-.tt.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
-.tbs{display:flex;gap:5px;margin-left:auto;}
-.tb2{padding:5px 11px;border-radius:4px;border:1px solid var(--border2);background:var(--panel);color:var(--text2);font-size:11px;cursor:pointer;transition:all .2s;font-family:'Noto Sans TC',sans-serif;font-weight:500;white-space:nowrap;}
-.tb2:hover{border-color:var(--accent);color:var(--accent);}
-.tb2.on{border-color:var(--gold);color:var(--gold);background:rgba(255,194,0,.07);}
-.tbr{border-color:var(--accent);color:var(--accent);background:rgba(0,200,255,.07);}
-.tbr:hover{background:rgba(0,200,255,.16);}
-
-/* ── ETF RANK STRIP ── */
-#etf-strip{background:var(--bg3);border-bottom:2px solid var(--border);padding:10px 20px;overflow-x:auto;}
-#etf-strip::-webkit-scrollbar{height:3px;}
-.strip-inner{display:flex;gap:8px;min-width:fit-content;}
-.etf-card{
-  background:var(--panel);border:1px solid var(--border);border-radius:7px;
-  padding:10px 14px;min-width:155px;cursor:pointer;transition:all .2s;position:relative;
-}
-.etf-card:hover{border-color:var(--border2);background:var(--panel2);}
-.etf-card.active{border-color:var(--gold);background:rgba(255,194,0,.06);}
-.etf-card.pending-etf{opacity:.55;}
-.etf-card.rank1{border-color:rgba(255,215,0,.5);}
-.etf-card.rank2{border-color:rgba(192,192,192,.4);}
-.etf-card.rank3{border-color:rgba(205,127,50,.4);}
-.ec-rank{
-  position:absolute;top:-1px;left:10px;
-  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;
-  padding:1px 7px;border-radius:0 0 4px 4px;
-}
-.ec-rank.r1{background:var(--rank1);color:#000;}
-.ec-rank.r2{background:var(--rank2);color:#000;}
-.ec-rank.r3{background:var(--rank3);color:#000;}
-.ec-rank.rn{background:var(--panel2);color:var(--text3);}
-.ec-top{display:flex;align-items:baseline;gap:6px;margin-top:10px;}
-.ec-code{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);}
-.ec-name{font-size:10px;color:var(--text2);}
-.ec-ret{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;line-height:1;margin-top:4px;}
-.ec-ret.up{color:var(--red);}
-.ec-sub{display:flex;gap:8px;margin-top:5px;font-size:9px;color:var(--text3);}
-.ec-aum{color:var(--teal);}
-.ec-issuer{color:var(--text3);}
-.ec-sel-badge{font-size:8px;font-weight:700;background:var(--gold);color:#000;border-radius:2px;padding:1px 5px;letter-spacing:.5px;}
-.all-badge{font-size:9px;color:var(--purple);font-weight:700;}
-
-/* ── DATA STATUS BAR ── */
-#data-status-bar{
-  background:var(--bg2);border-bottom:1px solid var(--border);
-  padding:7px 20px;display:flex;align-items:center;gap:8px;
-  font-size:11px;color:var(--text3);
-}
-#data-status-bar.fresh{background:rgba(0,232,122,.05);border-bottom-color:rgba(0,232,122,.2);color:var(--green);}
-#data-status-bar.stale{background:rgba(255,136,0,.06);border-bottom-color:rgba(255,136,0,.25);color:var(--orange);}
-#data-status-bar.old{background:rgba(255,46,85,.06);border-bottom-color:rgba(255,46,85,.25);color:var(--red);}
-
-/* ── MAIN LAYOUT ── */
-#main{display:flex;position:relative;z-index:1;}
-
-/* ── LEFT ── */
-#left{width:680px;min-width:680px;border-right:1px solid var(--border);display:flex;flex-direction:column;}
-.ph{padding:9px 18px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:8px;}
-.pt{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);}
-.pc{margin-left:auto;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.25);border-radius:8px;padding:1px 9px;font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:700;}
-
-/* MARQUEE */
-#mq{background:linear-gradient(135deg,rgba(255,194,0,.06),rgba(255,136,0,.03));border-bottom:1px solid rgba(255,194,0,.12);padding:7px 18px;display:flex;align-items:center;gap:10px;overflow:hidden;}
-.mql{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--gold);white-space:nowrap;}
-.mqi{overflow:hidden;flex:1;}
-.mqt{display:flex;gap:18px;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;animation:sc 45s linear infinite;}
-@keyframes sc{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
-
-/* STOCK LIST */
-#slist{flex:1;overflow-y:auto;}
-
-.sc{
-  border-bottom:1px solid var(--border);padding:12px 18px;
-  cursor:pointer;transition:background .15s;position:relative;
-}
-.sc:hover{background:rgba(0,200,255,.03);}
-.sc.sel{background:rgba(0,200,255,.055);border-left:2px solid var(--accent);}
-.sc.hot{background:linear-gradient(135deg,rgba(255,194,0,.055),transparent);border-left:2px solid var(--gold);animation:fin .5s ease;}
-.sc.pot{background:linear-gradient(135deg,rgba(0,232,122,.04),transparent);}
-@keyframes fin{from{background:rgba(255,194,0,.18);}to{background:linear-gradient(135deg,rgba(255,194,0,.055),transparent);}}
-
-/* card innards */
-.sr1{display:flex;gap:9px;margin-bottom:7px;}
-.srk{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);width:20px;flex-shrink:0;text-align:right;padding-top:2px;}
-.sinfo{flex:1;}
-.sid{display:flex;align-items:baseline;gap:7px;}
-.scode{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--accent);}
-.sname{font-size:13px;font-weight:600;}
-.sind{font-size:9px;color:var(--text3);background:var(--panel2);border:1px solid var(--border);border-radius:2px;padding:1px 6px;margin-top:2px;display:inline-block;}
-.spw{text-align:right;}
-.sp{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;}
-.sp.up{color:var(--red);}
-.sp.dn{color:var(--green);}
-.sc2{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-top:1px;}
-.sc2.up{color:var(--red);}
-.sc2.dn{color:var(--green);}
-
-/* badges */
-.bgs{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0 6px;}
-.bg{font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:2px;}
-.bh{background:rgba(255,194,0,.15);color:var(--gold);border:1px solid rgba(255,194,0,.3);}
-.bn{background:rgba(255,46,85,.18);color:var(--red);border:1px solid rgba(255,46,85,.35);}
-.ba{background:rgba(0,232,122,.12);color:var(--green);border:1px solid rgba(0,232,122,.3);}
-.bc{background:rgba(176,96,255,.18);color:var(--purple);border:1px solid rgba(176,96,255,.35);}
-.bi{background:rgba(0,212,180,.1);color:var(--teal);border:1px solid rgba(0,212,180,.3);}
-.bx{background:rgba(255,136,0,.12);color:var(--orange);border:1px solid rgba(255,136,0,.3);}
-
-/* pot star */
-.ps{display:none;position:absolute;top:11px;right:15px;background:linear-gradient(135deg,rgba(0,232,122,.18),rgba(0,200,255,.09));border:1px solid rgba(0,232,122,.4);border-radius:3px;padding:2px 8px;font-size:9px;color:var(--green);font-weight:700;align-items:center;gap:3px;}
-.sc.pot .ps{display:flex;}
-
-/* ETF coverage matrix */
-.emx{display:flex;gap:3px;align-items:flex-end;}
-.ec2{display:flex;flex-direction:column;align-items:center;gap:2px;width:28px;}
-.elb{font-size:7px;color:var(--text3);text-align:center;line-height:1.1;}
-.ebb{width:20px;height:26px;background:var(--panel2);border-radius:2px;display:flex;align-items:flex-end;overflow:hidden;}
-.ebf{width:100%;border-radius:2px 2px 0 0;min-height:2px;}
-.ebf.N{background:var(--gold);}
-.ebf.U{background:var(--green);}
-.ebf.S{background:var(--accent2);}
-.ebf.D{background:var(--orange);}
-.ebf.X{background:var(--border2);}
-.ebf.O{background:var(--border);}
-.ebf.V{background:var(--teal);}
-.ebf.P{background:repeating-linear-gradient(45deg,#1a1a1a,#1a1a1a 3px,#222 3px,#222 6px);}
-
-.srow2{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:10px;color:var(--text3);}
-.sv{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;}
-.sv.a{color:var(--accent);}
-.sv.g{color:var(--green);}
-.sv.o{color:var(--gold);}
-.sv.p{color:var(--purple);}
-.upt{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);margin-left:auto;}
-
-/* ── RIGHT ── */
-#right{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0;}
-#welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px;text-align:center;}
-.wico{font-size:52px;}
-.wtitle{font-size:17px;font-weight:700;color:var(--text2);}
-.wsub{font-size:11px;color:var(--text3);line-height:1.7;max-width:280px;}
-#detail{display:none;flex-direction:column;flex:1;}
-
-/* DETAIL HEADER */
-#dh{padding:15px 20px;background:var(--bg2);border-bottom:1px solid var(--border);}
-.dhtop{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
-.dhcode{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:var(--accent);}
-.dhname{font-size:15px;font-weight:600;margin-left:7px;}
-.dhp{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;line-height:1;}
-.dhp.up{color:var(--red);}
-.dhp.dn{color:var(--green);}
-.dhc{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;margin-top:2px;}
-.dhc.up{color:var(--red);}
-.dhc.dn{color:var(--green);}
-.dhqs{display:flex;gap:16px;flex-wrap:wrap;margin-top:11px;}
-.dhq .ql{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.dhq .qv{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;margin-top:2px;}
-
-/* detail tabs */
-.dts{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);padding:0 18px;}
-.dt{padding:9px 14px;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;}
-.dt:hover{color:var(--text2);}
-.dt.on{color:var(--accent);border-bottom-color:var(--accent);}
-.tc{display:none;padding:16px;}
-.tc.on{display:block;}
-
-/* ETF TAB */
-.etbl{width:100%;border-collapse:collapse;}
-.etbl th{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left;}
-.etbl td{padding:9px 10px;font-size:12px;border-bottom:1px solid rgba(21,36,56,.7);}
-.etbl tr:hover td{background:rgba(0,200,255,.025);}
-.enm{font-weight:600;}
-.eis{font-size:9px;color:var(--text3);}
-.ecode{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);}
-.erank-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;}
-.erank-badge.r1{background:rgba(255,215,0,.2);color:var(--rank1);border:1px solid rgba(255,215,0,.4);}
-.erank-badge.r2{background:rgba(192,192,192,.15);color:#bbb;border:1px solid rgba(192,192,192,.3);}
-.erank-badge.r3{background:rgba(205,127,50,.2);color:var(--rank3);border:1px solid rgba(205,127,50,.4);}
-.erank-badge.rn{background:rgba(255,255,255,.05);color:var(--text3);border:1px solid var(--border);}
-.wb{display:flex;align-items:center;gap:6px;}
-.wbg{flex:1;height:4px;background:var(--panel2);border-radius:2px;}
-.wbf{height:100%;border-radius:2px;background:var(--accent2);}
-.wv{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);width:38px;text-align:right;}
-.cc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;}
-.cn{background:rgba(255,194,0,.15);color:var(--gold);border:1px solid rgba(255,194,0,.3);border-radius:3px;padding:1px 6px;}
-.cu{color:var(--green);}
-.cd{color:var(--red);}
-.cs{color:var(--text3);}
-.cv-verified{background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.35);border-radius:3px;padding:1px 6px;}
-.cx{background:rgba(255,46,85,.1);color:#666;border:1px solid rgba(255,46,85,.2);border-radius:3px;padding:1px 6px;}
-
-.cbox{margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:14px;}
-.cbt{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
-.cbg{display:flex;gap:18px;flex-wrap:wrap;}
-.cbi .cl{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.cbi .cv{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;margin-top:3px;}
-
-/* FUND TAB */
-.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;}
-.fc{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:11px;}
-.fl{font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
-.fv{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;}
-.fs{font-size:9px;margin-top:3px;}
-.fs.p{color:var(--red);}
-.fs.n{color:var(--green);}
-.qt{width:100%;border-collapse:collapse;}
-.qt th{font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;}
-.qt th:first-child{text-align:left;}
-.qt td{padding:6px 8px;font-size:10px;text-align:right;border-bottom:1px solid rgba(21,36,56,.5);font-family:'JetBrains Mono',monospace;}
-.qt td:first-child{text-align:left;color:var(--text2);font-family:'Noto Sans TC',sans-serif;font-size:10px;}
-.pv{color:var(--red);}
-.nv{color:var(--green);}
-
-/* TECH TAB */
-.pl{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px;}
-.pli{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:9px;}
-.pll{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.plv{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;margin-top:3px;}
-.pctb{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:14px;}
-.pctbl{font-size:8px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
-.pbar{height:18px;background:var(--panel2);border-radius:3px;position:relative;overflow:hidden;margin:5px 0;}
-.pbarf{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),var(--accent),var(--gold),var(--red));}
-.pm{position:absolute;top:0;bottom:0;width:2px;background:#fff;border-radius:1px;box-shadow:0 0 6px #fff;}
-.plabs{display:flex;justify-content:space-between;font-size:8px;color:var(--text3);}
-.pctv{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;margin-top:5px;}
-.psub{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px;}
-.psi{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:9px;}
-.psl{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.psv{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;margin-top:3px;}
-
-/* HIST TAB */
-.bw{overflow-x:auto;margin-bottom:12px;}
-.bb{display:flex;gap:5px;align-items:flex-end;height:100px;padding:0 2px;min-width:fit-content;}
-.bi2{display:flex;flex-direction:column;align-items:center;gap:2px;width:46px;}
-.bg2{width:38px;display:flex;align-items:flex-end;height:84px;}
-.bf{width:100%;border-radius:2px 2px 0 0;min-height:2px;}
-.bf.p{background:linear-gradient(0deg,rgba(0,232,122,.45),rgba(0,232,122,.2));border:1px solid var(--green);}
-.bf.n{background:linear-gradient(180deg,rgba(255,46,85,.45),rgba(255,46,85,.2));border:1px solid var(--red);}
-.byr{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text3);}
-.bvl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text2);}
-
-/* DIV TAB */
-.dvt{width:100%;border-collapse:collapse;margin-bottom:12px;}
-.dvt th{font-size:8px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;}
-.dvt th:first-child{text-align:left;}
-.dvt td{padding:6px 8px;font-size:10px;font-family:'JetBrains Mono',monospace;text-align:right;border-bottom:1px solid rgba(21,36,56,.5);}
-.dvt td:first-child{text-align:left;font-family:'Noto Sans TC',sans-serif;color:var(--text2);}
-.ds{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
-.dsi{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:10px;}
-.dsl{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
-.dsv{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;margin-top:4px;}
-
-/* IND VIEW */
-#indv{display:none;padding:16px;flex:1;overflow-y:auto;}
-#overlapv{display:none;padding:16px;flex:1;overflow-y:auto;}
-.ov-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(21,36,56,.4);}
-.ov-rank{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--text3);width:28px;text-align:center;flex-shrink:0;}
-.ov-rank.top1{color:var(--rank1);}
-.ov-rank.top2{color:var(--rank2);}
-.ov-rank.top3{color:var(--rank3);}
-.ov-info{flex:1;min-width:0;}
-.ov-code{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);}
-.ov-name{font-size:12px;margin-left:6px;}
-.ov-etfs{font-size:10px;color:var(--text3);margin-top:2px;}
-.ov-count{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
-.ov-count-num{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--teal);}
-.ov-count-label{font-size:8px;color:var(--text3);}
-.ov-dots{display:flex;gap:3px;margin-top:4px;}
-.ov-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);}
-.ov-dot.on{background:var(--teal);}
-.is{margin-bottom:20px;}
-.ih{display:flex;align-items:center;gap:7px;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--border);}
-.iico{font-size:15px;}
-.inm{font-size:12px;font-weight:700;}
-.icnt{font-size:9px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.2);border-radius:6px;padding:1px 7px;color:var(--accent);font-family:'JetBrains Mono',monospace;}
-.ti{display:flex;gap:9px;padding:6px 0;border-bottom:1px solid rgba(21,36,56,.3);}
-.td{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);width:62px;flex-shrink:0;padding-top:1px;}
-.tb3{flex:1;}
-.tr2{display:flex;align-items:center;gap:7px;}
-.tc2{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:11px;font-weight:700;}
-.tn{font-size:11px;font-weight:500;}
-.tpc{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-left:auto;}
-.tdes{font-size:9px;color:var(--text3);margin-top:2px;}
-
-/* NOTIF */
-#notif{position:fixed;top:68px;right:18px;z-index:500;background:linear-gradient(135deg,var(--panel),var(--panel2));border:1px solid var(--gold);border-radius:7px;padding:9px 14px;display:flex;align-items:center;gap:7px;box-shadow:0 0 18px rgba(255,194,0,.2);font-size:11px;transform:translateX(130%);transition:transform .4s cubic-bezier(.175,.885,.32,1.275);}
-#notif.show{transform:translateX(0);}
-
-/* MODAL */
-.mo{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
-.mo.open{display:flex;}
-/* 對話框本身限制最大高度為視窗的90%，避免內容（尤其貼上大量文字後）把對話框撐到超出螢幕，
-   導致下方「解析並更新」按鈕被推到看不見的地方（這是先前回報的bug，手機上尤其明顯）。
-   改用 flex column + 內部捲動區域，讓標題與底部按鈕列永遠固定可見，只有中間內容可以滾動。*/
-.md{
-  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
-  max-width:500px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.8);
-  max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
-}
-.md-scroll{padding:22px;overflow-y:auto;flex:1;min-height:0;}
-.md-actions{padding:14px 22px;border-top:1px solid var(--border);flex-shrink:0;}
-.md h2{font-size:15px;margin-bottom:12px;color:var(--gold);}
-.md p{font-size:11px;color:var(--text2);line-height:1.75;margin-bottom:9px;}
-.md .mc{margin-top:12px;padding:6px 16px;background:var(--panel);border:1px solid var(--border2);border-radius:4px;color:var(--text2);cursor:pointer;font-size:11px;}
-.md .mc:hover{border-color:var(--accent);color:var(--accent);}
-
-/* PASTE MODAL */
-.paste-tabs{display:flex;gap:4px;margin:14px 0 10px;border-bottom:1px solid var(--border);}
-.paste-tab{padding:8px 14px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;}
-.paste-tab.on{color:var(--accent);border-bottom-color:var(--accent);}
-.paste-panel{display:none;}
-.paste-panel.on{display:block;}
-#pasteArea,#pasteAreaStock{
-  width:100%;min-height:160px;background:var(--panel);border:1px solid var(--border2);
-  border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;
-  padding:10px;resize:vertical;outline:none;box-sizing:border-box;
-}
-#pasteArea:focus,#pasteAreaStock:focus{border-color:var(--accent);}
-.paste-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
-.clipBtn{
-  background:var(--accent);color:#000;border:none;border-radius:5px;
-  padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;
-  font-family:'Noto Sans TC',sans-serif;white-space:nowrap;
-  display:flex;align-items:center;gap:5px;
-}
-.clipBtn:active{transform:scale(0.97);}
-.clipBtn:hover{background:#33d4ff;}
-.clipHint{font-size:10px;color:var(--text3);}
-.srcBtn{
-  display:flex;align-items:center;gap:6px;
-  background:var(--panel2);border:1px solid var(--border2);border-radius:5px;
-  padding:7px 12px;font-size:11px;font-weight:600;cursor:pointer;
-  font-family:'Noto Sans TC',sans-serif;white-space:nowrap;color:var(--text);
-  text-decoration:none;transition:all .15s;
-}
-.srcBtn:hover{border-color:var(--accent);background:rgba(0,200,255,.08);}
-.srcBtn.primary{border-color:var(--gold);color:var(--gold);}
-.srcBtn.primary:hover{background:rgba(255,194,0,.08);}
-.srcBtn.disabled{opacity:.4;cursor:not-allowed;pointer-events:none;}
-.srcBtn .srcTag{font-size:9px;background:rgba(255,255,255,.08);border-radius:3px;padding:1px 5px;}
-#holdingsTargetETF{outline:none;}
-#holdingsTargetETF:focus{border-color:var(--accent);}
-#parseResult{margin-top:12px;padding:12px;border-radius:6px;font-size:12px;line-height:1.7;max-height:200px;overflow-y:auto;}
-#parseResult.success{background:rgba(0,232,122,.07);border:1px solid rgba(0,232,122,.25);color:var(--green);}
-#parseResult.error{background:rgba(255,46,85,.07);border:1px solid rgba(255,46,85,.25);color:var(--red);}
-#parseResult.warn{background:rgba(255,194,0,.07);border:1px solid rgba(255,194,0,.25);color:var(--gold);}
-
-.nr{padding:30px;text-align:center;color:var(--text3);font-size:12px;}
-::-webkit-scrollbar{width:4px;height:3px;}
-::-webkit-scrollbar-track{background:var(--bg2);}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
-@media(max-width:1100px){#left{width:420px;min-width:420px;}}
-@media(max-width:800px){#main{flex-direction:column;}#left{width:100%;min-width:unset;border-right:none;max-height:52vh;}}
+  html, body, #root { min-height: 100%; }
+  body { margin: 0; }
+  #boot-error { display:none; font-family: monospace; background:#1A2230; color:#ffb4a8; padding:24px; white-space:pre-wrap; word-break:break-word; line-height:1.6; }
 </style>
 </head>
 <body>
-
-<div id="hdr">
-  <div class="logo">績效榜<span>×</span>跟單雷達</div>
-  <div class="live"><div class="ldot"></div>LIVE</div>
-  <span style="font-size:9px;color:var(--text3);">台灣主動式ETF × 績效排名前10追蹤</span>
-  <div class="hdr-r"><div class="htime" id="clock">--:--:--</div><div class="hdate" id="datedis"></div></div>
-</div>
-
-<div id="tb">
-  <div class="sw"><span class="sicon">🔍</span><input id="srch" type="text" placeholder="搜尋股票代號、名稱、產業..."></div>
-  <div class="ttabs">
-    <button class="tt on" onclick="setTF('today',this)">今日</button>
-    <button class="tt" onclick="setTF('week',this)">本週</button>
-    <button class="tt" onclick="setTF('month',this)">本月</button>
-    <button class="tt" onclick="setTF('quarter',this)">本季</button>
-  </div>
-  <div class="tbs">
-    <button class="tb2" id="btn-overlap" onclick="togOverlap()">🏅 共識排行</button>
-    <button class="tb2" id="btn-pot" onclick="togPot()">✨ 潛力股</button>
-    <button class="tb2" id="btn-ind" onclick="togInd()">📊 產業分類</button>
-    <button class="tb2 tbr" onclick="openPaste()">📋 貼上更新</button>
-    <button class="tb2" onclick="openHelp()">？ 說明</button>
-  </div>
-</div>
-
-<!-- ETF PERFORMANCE RANK STRIP -->
-<div id="etf-strip">
-  <div class="strip-inner" id="strip-inner"></div>
-</div>
-
-<div id="data-status-bar">
-  <span id="data-status-icon">⚪</span>
-  <span id="data-status-text">尚未貼上更新資料 — 目前顯示為範例資料</span>
-  <span id="auto-fetch-status" style="font-size:10px;color:var(--text3);margin-left:10px;"></span>
-  <button class="tb2 tbr" style="margin-left:auto;padding:4px 10px;font-size:10px;" onclick="openPaste()">📋 立即貼上更新</button>
-</div>
-
-<div id="main">
-  <div id="left">
-    <div class="ph">
-      <span style="font-size:13px">📡</span>
-      <span class="pt">持股動向 — 績效前<span id="active-etf-count">10</span>大主動ETF</span>
-      <span class="all-badge" id="all-badge"></span>
-      <div class="pc" id="stock-count">0</div>
-    </div>
-    <div id="mq">
-      <div class="mql">🔥 熱門</div>
-      <div class="mqi"><div class="mqt" id="mqt"></div></div>
-    </div>
-    <div id="slist"></div>
-  </div>
-
-  <div id="right">
-    <div id="welcome">
-      <div class="wico">🏆</div>
-      <div class="wtitle">點選上方ETF榜，篩選追蹤範圍</div>
-      <div class="wsub">「全部前10」= 追蹤績效排名前10的ETF共識選股<br>點選單一ETF = 查看該ETF的個別換股動向<br><br>點選左側個股查看詳細財務分析</div>
-    </div>
-    <div id="detail">
-      <div id="dh">
-        <div class="dhtop">
-          <div><div><span class="dhcode" id="d-code"></span><span class="dhname" id="d-name"></span></div><div style="display:flex;gap:5px;margin-top:5px;" id="d-badges"></div></div>
-          <div style="margin-left:auto;text-align:right"><div class="dhp" id="d-price"></div><div class="dhc" id="d-chg"></div></div>
-        </div>
-        <div class="dhqs" id="d-quick"></div>
-      </div>
-      <div class="dts">
-        <div class="dt on" onclick="swT('etf',this)">ETF持股</div>
-        <div class="dt" onclick="swT('fund',this)">基本面</div>
-        <div class="dt" onclick="swT('tech',this)">技術面</div>
-        <div class="dt" onclick="swT('hist',this)">獲利歷史</div>
-        <div class="dt" onclick="swT('div',this)">股利</div>
-      </div>
-      <div id="tab-etf" class="tc on"></div>
-      <div id="tab-fund" class="tc"></div>
-      <div id="tab-tech" class="tc"></div>
-      <div id="tab-hist" class="tc"></div>
-      <div id="tab-div" class="tc"></div>
-    </div>
-    <div id="indv"></div>
-    <div id="overlapv"></div>
-  </div>
-</div>
-
-<div id="notif">🏆 資料已更新，<span id="nn" style="color:var(--gold);font-weight:700;"></span> 筆持股異動</div>
-
-<div class="mo" id="hmodal">
-  <div class="md">
-    <h2>🏆 績效榜 × 跟單雷達 — 使用邏輯</h2>
-    <p><strong style="color:var(--gold);">核心邏輯</strong>：跟著「選股眼光最準」的經理人操作。只追蹤今年以來績效排名前段班的主動式ETF，他們的買進/賣出/換股才有參考價值。</p>
-    <p><strong style="color:var(--accent);">ETF績效榜（上方條帶）</strong>：依今年報酬率實時排名，金牌/銀牌/銅牌標示前三。點選可單獨追蹤該ETF的換股動向；點「全部前10」= 追蹤前10名ETF的共識選股。</p>
-    <p><strong style="color:var(--green);">✨ 潛力股</strong>：多家績效前段班ETF同時加碼/新進的個股，共識越高代表「頂尖操盤手都看好」，跟單成功率更高。</p>
-    <p><strong style="color:var(--text2);">ETF橫條圖說明</strong>：金=新進場、綠=加碼、藍=持平、橘=減碼、灰=出清（已賣出）。條高度代表異動幅度。</p>
-    <p><strong style="color:var(--red);">📋 如何更新資料（重要）</strong>：本工具不會自動連網抓取持股，採「分層資料來源」策略——10檔ETF以 <span style="color:var(--accent);">MoneyDJ理財網</span> 為主幹；其中 <span style="color:var(--teal);">00992A／00982A（群益）、00987A（台新）</span> 另有已驗證更即時的投信官網可選。在「② 完整持股權重」分頁選好ETF後，畫面會自動列出可用的查詢按鈕，點開→複製→回來貼上即可。</p>
-    <p><strong style="color:var(--orange);">資料新鮮度提示條</strong>：頁面頂部會顯示資料狀態 — 🟢綠色＝24小時內、🟠橘色＝1~2天、🔴紅色＝超過2天未更新，提醒您該重新貼上了。</p>
-    <p><strong style="color:var(--purple);">📱 手機長按「貼上」沒反應怎麼辦？</strong>：部分手機內建瀏覽器（如三星瀏覽器）對網頁貼上手勢支援不穩定。每個文字框上方都有「📋 從剪貼簿讀取並貼上」按鈕，可繞過此問題；若按鈕也跳出失敗訊息，建議改用 <strong>Chrome 瀏覽器</strong>開啟本頁面再試。</p>
-    <button class="mc" onclick="closeHelp()">了解，關閉</button>
-  </div>
-</div>
-
-<!-- PASTE UPDATE MODAL -->
-<div class="mo" id="pasteModal">
-  <div class="md" style="max-width:760px;">
-    <div class="md-scroll">
-    <h2>📋 貼上最新持股資料</h2>
-    <p style="color:var(--text2);">三個分頁各自的資料來源不同：①總表只有 etfinfo.tw 有提供（MoneyDJ無此功能）；②③則是10檔ETF皆可用 MoneyDJ，部分另有更即時的投信官網可選。點選分頁後，畫面會列出可用的查詢按鈕。</p>
-
-    <div class="paste-tabs">
-      <div class="paste-tab on" onclick="switchPasteTab('etf',this)">① ETF排行/異動總表</div>
-      <div class="paste-tab" onclick="switchPasteTab('holdings',this)">② 完整持股權重 ★推薦</div>
-      <div class="paste-tab" onclick="switchPasteTab('stock',this)">③ 個股異動摘要</div>
-    </div>
-
-    <div id="paste-panel-etf" class="paste-panel on">
-      <p style="font-size:11px;color:var(--text3);margin-bottom:8px;">
-        <strong style="color:var(--orange);">⚠️ 此分頁的資料只有 etfinfo.tw 提供</strong>（看「全部10檔ETF當天漲跌%、異動筆數」的總覽功能，MoneyDJ及各投信官網都沒有對應頁面，所以這裡無法像②③一樣提供多個來源選擇）。
-      </p>
-      <div class="paste-toolbar">
-        <a class="srcBtn primary" href="https://www.etfinfo.tw/active" target="_blank" rel="noopener">📊 開啟 etfinfo.tw 全部ETF總表</a>
-      </div>
-      <p style="font-size:11px;color:var(--text3);margin:8px 0;">開啟後全選複製整段表格文字，貼到下方框，程式會自動辨識每一檔的代號、漲跌%、異動筆數。格式範例：<br>
-      <span style="font-family:'JetBrains Mono',monospace;color:var(--text2);">00991A 主動復華未來50 +3.30% +5.1億 5筆<br>00982A 主動群益台灣強棒 +2.86% +367萬 1筆</span></p>
-      <div class="paste-toolbar">
-        <button type="button" class="clipBtn" onclick="readClipboardInto('pasteArea')">📋 從剪貼簿讀取並貼上</button>
-        <span class="clipHint">若長按「貼上」沒反應，請改用此按鈕（會跳出授權視窗，按「允許」即可）</span>
-      </div>
-      <textarea id="pasteArea" placeholder="在這裡貼上 etfinfo.tw/active 複製的整段文字...　或長按此處選「貼上」　或按上方藍色按鈕"></textarea>
-    </div>
-
-    <div id="paste-panel-holdings" class="paste-panel">
-      <p style="font-size:11px;color:var(--text3);margin-bottom:6px;">
-        <strong style="color:var(--gold);">這是最完整的更新方式</strong>：會重建左側卡片的「ETF持股矩陣」與右側「ETF持股」分頁的真實權重。<br>
-        <strong>資料來源策略：</strong>10檔皆以 MoneyDJ 為主幹；<span style="color:var(--teal);">00992A／00982A（群益）、00987A（台新）</span>另有已驗證更即時的官網來源可選。
-      </p>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-        <label style="font-size:11px;color:var(--text2);">本次要更新哪一檔ETF：</label>
-        <select id="holdingsTargetETF" onchange="updateSourceButtons()" style="background:var(--panel);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-size:12px;padding:5px 8px;font-family:'JetBrains Mono',monospace;"></select>
-      </div>
-
-      <div id="sourceButtonsBox" style="background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:10px;margin-bottom:10px;">
-        <div style="font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">① 點按鈕開啟來源網頁 → ② 在該網頁全選複製持股表格 → ③ 回來這裡貼上</div>
-        <div id="sourceButtonsList" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-      </div>
-
-      <p style="font-size:10px;color:var(--text3);margin-bottom:6px;">支援三種貼上格式，自動辨識：<br>
-      <span style="font-family:'JetBrains Mono',monospace;color:var(--text2);">★ MoneyDJ格式：台積電(2330.TW) 9.97 11,960,000.00<br>
-      ・ 群益／投信官網格式：2330 · 台積電 · 8.64% 1,706,000<br>
-      ・ 台新官網格式：2383 TT 台光電 41,000 7.0163%</span></p>
-      <div class="paste-toolbar">
-        <button type="button" class="clipBtn" onclick="readClipboardInto('pasteAreaHoldings')">📋 從剪貼簿讀取並貼上</button>
-        <span class="clipHint">若長按「貼上」沒反應，請改用此按鈕（會跳出授權視窗，按「允許」即可）</span>
-      </div>
-      <textarea id="pasteAreaHoldings" placeholder="在這裡貼上該ETF的完整持股明細表格...　或長按此處選「貼上」　或按上方藍色按鈕"></textarea>
-    </div>
-
-    <div id="paste-panel-stock" class="paste-panel">
-      <p style="font-size:11px;color:var(--text3);margin-bottom:8px;">貼上單一個股的 ETF 異動表（從個股的「操盤追蹤」頁複製），格式範例：<br>
-      <span style="font-family:'JetBrains Mono',monospace;color:var(--text2);">2330 台積電<br>2327 國巨 +600張 加碼<br>2449 京元電子 +2839張 加碼</span></p>
-      <div class="paste-toolbar">
-        <button type="button" class="clipBtn" onclick="readClipboardInto('pasteAreaStock')">📋 從剪貼簿讀取並貼上</button>
-        <span class="clipHint">若長按「貼上」沒反應，請改用此按鈕（會跳出授權視窗，按「允許」即可）</span>
-      </div>
-      <textarea id="pasteAreaStock" placeholder="在這裡貼上個股的ETF異動明細...　或長按此處選「貼上」　或按上方藍色按鈕"></textarea>
-    </div>
-
-    <div id="parseResult" style="display:none;"></div>
-    </div>
-    <div class="md-actions" style="display:flex;gap:8px;">
-      <button class="mc" style="background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;margin-top:0;" onclick="parsePastedData()">⚡ 解析並更新</button>
-      <button class="mc" style="margin-top:0;" onclick="closePaste()">取消</button>
-      <button class="mc" style="margin-top:0;margin-left:auto;color:var(--red);border-color:rgba(255,46,85,.3);" onclick="clearOverrides()">🗑️ 清除已貼上資料</button>
-    </div>
-  </div>
-</div>
-
+<div id="root"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1A2230;color:#C9A24B;font-family:sans-serif;font-size:14px;">頁面載入中，請稍候...</div></div>
+<div id="boot-error"></div>
 <script>
-// ══════════════════════════════════════════════════════
-// 台灣主動式ETF 績效排行（根據2026年最新公開數據，以今年以來報酬率排序）
-// 來源：CMoney、各投信、TVBS、旺得富等2026/04~05最新報導
-// ══════════════════════════════════════════════════════
-const ETF_RANK = [
-  { rank:1,  code:'00992A', name:'主動群益科技創新', issuer:'群益投信', ret2026:'+63.6%', ret1y:'+78.2%', aum:'428億', focus:'ASIC/高速運算/科技創新',   color:'#ffd700', dataStatus:'verified',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00992a.tw',
-    officialUrl:'https://www.capitalfund.com.tw/etf/product/detail/500/portfolio', officialLabel:'群益投信官網（已驗證更即時）' },
-  { rank:2,  code:'00981A', name:'主動統一台股增長', issuer:'統一投信', ret2026:'+62.6%', ret1y:'+71.0%', aum:'1833億',focus:'大型成長/AI硬體/人形機器人',color:'#ffc200', dataStatus:'verified',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00981a.tw',
-    officialUrl:null, officialLabel:'統一投信官網禁止自動讀取，僅MoneyDJ可用' },
-  { rank:3,  code:'00994A', name:'主動第一金台股優選',issuer:'第一金投信',ret2026:'+58.5%', ret1y:'+65.8%', aum:'188億', focus:'千金股/大型電子權值',      color:'#cd7f32', dataStatus:'verified',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00994a.tw',
-    officialUrl:'https://www.fsitc.com.tw/FundDetail.aspx?ID=182', officialLabel:'第一金投信官網（僅前10大，需手動查詢日期）' },
-  { rank:4,  code:'00987A', name:'主動台新優勢成長', issuer:'台新投信', ret2026:'+57.2%', ret1y:'+62.5%', aum:'165億', focus:'成長型/千金股偏重',         color:'#ff8800', dataStatus:'verified',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00987a.tw',
-    officialUrl:'https://www.tsit.com.tw/ETF/Home/ETFSeriesDetail/00987A', officialLabel:'台新投信官網（已驗證更即時，完整30檔）' },
-  { rank:5,  code:'00995A', name:'主動中信台灣卓越', issuer:'中信投信', ret2026:'+52.8%', ret1y:'+58.3%', aum:'145億', focus:'ROE篩選/量化四因子',        color:'#ff6644', dataStatus:'pending',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00995a.tw',
-    officialUrl:null, officialLabel:'中信投信官網為純JS頁面，僅MoneyDJ可用' },
-  { rank:6,  code:'00991A', name:'主動復華未來50',   issuer:'復華投信', ret2026:'+48.5%', ret1y:'+55.2%', aum:'312億', focus:'台積電重押/AI供應鏈',       color:'#cc44cc', dataStatus:'pending',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00991a.tw',
-    officialUrl:null, officialLabel:'復華投信官網禁止自動讀取，僅MoneyDJ可用' },
-  { rank:7,  code:'00988A', name:'主動統一全球創新', issuer:'統一投信', ret2026:'+45.2%', ret1y:'+87.0%', aum:'285億', focus:'全球AI/美股科技(海外)',     color:'#8844ff', dataStatus:'pending',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00988a.tw',
-    officialUrl:null, officialLabel:'統一投信官網禁止自動讀取，僅MoneyDJ可用' },
-  { rank:8,  code:'00982A', name:'主動群益台灣強棒', issuer:'群益投信', ret2026:'+38.8%', ret1y:'+52.5%', aum:'680億', focus:'中小型成長/彈性操作',        color:'#0099ff', dataStatus:'verified',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00982a.tw',
-    officialUrl:'https://www.capitalfund.com.tw/etf/product/detail/399/portfolio', officialLabel:'群益投信官網（已驗證更即時）' },
-  { rank:9,  code:'00985A', name:'主動野村台灣50',   issuer:'野村投信', ret2026:'+32.5%', ret1y:'+45.8%', aum:'210億', focus:'台灣50增強/市值前150',      color:'#00bbcc', dataStatus:'pending',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00985a.tw',
-    officialUrl:null, officialLabel:'野村投信官網為純JS頁面，僅MoneyDJ可用' },
-  { rank:10, code:'00993A', name:'主動安聯台灣',     issuer:'安聯投信', ret2026:'+28.5%', ret1y:'+38.2%', aum:'92億',  focus:'成長平衡型/雙策略',         color:'#00aa88', dataStatus:'pending',
-    moneydjUrl:'https://www.moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid=00993a.tw',
-    officialUrl:null, officialLabel:'安聯投信官網為純JS頁面，僅MoneyDJ可用' },
-];
+  // 全域錯誤攔截：若任何步驟失敗，畫面會顯示錯誤訊息而非空白頁
+  window.addEventListener('error', function (e) {
+    var box = document.getElementById('boot-error');
+    if (!box) return;
+    box.style.display = 'block';
+    box.textContent += '[錯誤] ' + (e.message || e.error) + '\n  於: ' + (e.filename || '') + ':' + (e.lineno || '') + '\n\n';
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var box = document.getElementById('boot-error');
+    if (!box) return;
+    box.style.display = 'block';
+    box.textContent += '[Promise 錯誤] ' + (e.reason && e.reason.message ? e.reason.message : e.reason) + '\n\n';
+  });
+</script>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
 
-// ══════════════════════════════════════════════════════
-// ★ 真實已驗證持股資料 ★
-// 來源已逐筆人工核對 canonical URL 與頁面標題完全對應，非快取或串檔錯誤資料。
-// 4檔已驗證（00992A／00981A／00994A／00982A），其餘6檔標記為 pending，
-// 尚未取得，等候後續補上或由使用者透過「貼上更新」功能補齊。
-// dataStatus: 'verified'=已驗證真實資料｜'pending'=尚無資料，等待補齊
-// ══════════════════════════════════════════════════════
-const VERIFIED_HOLDINGS = {
-  '00992A': {
-    snapshotDate: '2026-06-18', source: '群益投信官網',
-    holdings: [
-      {code:'2330',name:'台積電',weight:7.21,shares:1406000},
-      {code:'2383',name:'台光電',weight:6.7,shares:563000},
-      {code:'8996',name:'高力',weight:5.51,shares:1630000},
-      {code:'3017',name:'奇鋐',weight:5.15,shares:1009000},
-      {code:'2345',name:'智邦',weight:5.06,shares:977000},
-      {code:'6223',name:'旺矽',weight:4.45,shares:326000},
-      {code:'3037',name:'欣興',weight:4.32,shares:2097000},
-      {code:'2059',name:'川湖',weight:4.28,shares:293000},
-      {code:'3665',name:'貿聯-KY',weight:4.26,shares:955000},
-      {code:'3008',name:'大立光',weight:4.2,shares:380000},
-    ]
-  },
-  '00982A': {
-    snapshotDate: '2026-06-15', source: 'MoneyDJ理財網',
-    holdings: [
-      {code:'5536',name:'聖暉*',weight:8.87,shares:3754000},
-      {code:'2330',name:'台積電',weight:8.79,shares:1967000},
-      {code:'2454',name:'聯發科',weight:7.30,shares:867000},
-      {code:'6139',name:'亞翔',weight:4.90,shares:2940000},
-      {code:'3105',name:'穩懋',weight:3.99,shares:4143000},
-      {code:'6223',name:'旺矽',weight:3.72,shares:307000},
-      {code:'2345',name:'智邦',weight:3.68,shares:804000},
-      {code:'2360',name:'致茂',weight:3.51,shares:823000},
-      {code:'4958',name:'臻鼎-KY',weight:3.50,shares:3147000},
-      {code:'2383',name:'台光電',weight:3.12,shares:330000},
-    ]
-  },
-  '00994A': {
-    snapshotDate: '2026-05-04', source: 'MoneyDJ理財網',
-    holdings: [
-      {code:'2330',name:'台積電',weight:15.35,shares:312999},
-      {code:'2383',name:'台光電',weight:6.14,shares:60000},
-      {code:'2454',name:'聯發科',weight:5.44,shares:88000},
-      {code:'2308',name:'台達電',weight:4.99,shares:104499},
-      {code:'2345',name:'智邦',weight:4.96,shares:92000},
-      {code:'3017',name:'奇鋐',weight:4.56,shares:73500},
-      {code:'2368',name:'金像電',weight:4.15,shares:134000},
-      {code:'3653',name:'健策',weight:4.05,shares:35501},
-      {code:'8046',name:'南電',weight:4.03,shares:190000},
-      {code:'3665',name:'貿聯-KY',weight:3.99,shares:63000},
-    ]
-  },
-  '00981A': {
-    snapshotDate: '2026-06-03', source: 'MoneyDJ理財網',
-    holdings: [
-      {code:'2330',name:'台積電',weight:9.97,shares:11960000},
-      {code:'2383',name:'台光電',weight:7.45,shares:4486000},
-      {code:'2454',name:'聯發科',weight:6.66,shares:4263000},
-      {code:'2308',name:'台達電',weight:5.55,shares:6572000},
-      {code:'2345',name:'智邦',weight:5.54,shares:6231000},
-      {code:'2327',name:'國巨*',weight:5.16,shares:18313000},
-      {code:'3017',name:'奇鋐',weight:5.09,shares:5191000},
-      {code:'6669',name:'緯穎',weight:4.69,shares:2437000},
-      {code:'6223',name:'旺矽',weight:4.40,shares:2169000},
-      {code:'3037',name:'欣興',weight:4.29,shares:12466000},
-    ]
-  },
+/* ============ SVG Icon 元件 ============ */
+function createIcon(children) {
+  return function IconCmp({ size = 24, color = 'currentColor', className = '', style = {}, ...rest }) {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none"
+        stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
+        className={className} style={style} {...rest}>
+        {children}
+      </svg>
+    );
+  };
+}
+const Menu = createIcon(<><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>);
+const X = createIcon(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>);
+const LogOut = createIcon(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>);
+const LogIn = createIcon(<><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></>);
+const BookOpen = createIcon(<><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>);
+const FolderOpen = createIcon(<path d="M4 20h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 5.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>);
+const Megaphone = createIcon(<><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></>);
+const Wrench = createIcon(<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>);
+const ChevronLeft = createIcon(<polyline points="15 18 9 12 15 6"/>);
+const ChevronRight = createIcon(<polyline points="9 18 15 12 9 6"/>);
+const ExternalLink = createIcon(<><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"/></>);
+const Calendar = createIcon(<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>);
+const MapPin = createIcon(<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>);
+const Plus = createIcon(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>);
+const Trash2 = createIcon(<><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>);
+const Lock = createIcon(<><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>);
+const Loader2 = createIcon(<path d="M21 12a9 9 0 1 1-6.219-8.56"/>);
+const TrendingUp = createIcon(<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>);
+const Download = createIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>);
+const Users = createIcon(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>);
+const BarChart2 = createIcon(<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>);
+const Phone = createIcon(<><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.48 2 2 0 0 1 3.58 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l1.12-1.12a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></>);
+
+/* ============ localStorage 儲存 ============ */
+/* ============ Firebase Firestore 儲存層 ============ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDUYl_KPQ5M0pcXJDqACAetUcOXgJC82UA",
+  authDomain: "first-place-trading-diary.firebaseapp.com",
+  projectId: "first-place-trading-diary",
+  storageBucket: "first-place-trading-diary.firebasestorage.app",
+  messagingSenderId: "734984027420",
+  appId: "1:734984027420:web:61532649c00bfe23090ed9",
+  measurementId: "G-K862PSEBMD"
+};
+const _fbApp = firebase.initializeApp(FIREBASE_CONFIG);
+const _db = firebase.firestore();
+
+async function fsGetList(col) {
+  try {
+    const snap = await _db.collection(col).orderBy('_ts').get();
+    return snap.docs.map(d => ({ _docId: d.id, ...d.data() }));
+  } catch (e) { try { const snap2 = await _db.collection(col).get(); return snap2.docs.map(d => ({ _docId: d.id, ...d.data() })); } catch(e2) { return []; } }
+}
+async function fsAdd(col, data) {
+  try { const ref = await _db.collection(col).add({ ...data, _ts: Date.now() }); return ref.id; } catch (e) { return null; }
+}
+async function fsDel(col, id) {
+  try { await _db.collection(col).doc(id).delete(); return true; } catch (e) { return false; }
+}
+async function fsDelWhere(col, field, val) {
+  try {
+    const snap = await _db.collection(col).where(field, '==', val).get();
+    const batch = _db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    return true;
+  } catch(e) { return false; }
+}
+
+async function getJSON(key, shared, fallback) {
+  if (!shared) {
+    try { const raw = localStorage.getItem('priv:' + key); return raw ? JSON.parse(raw) : fallback; } catch(e) { return fallback; }
+  }
+  const list = await fsGetList(key);
+  return list.length > 0 ? list : (fallback !== undefined ? fallback : []);
+}
+async function setJSON(key, value, shared) {
+  if (!shared) {
+    try { localStorage.setItem('priv:' + key, JSON.stringify(value)); return true; } catch(e) { return false; }
+  }
+  // 共用資料：批次清除並重寫（用於管理者覆寫清單）
+  try {
+    const snap = await _db.collection(key).get();
+    const batch = _db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    if (Array.isArray(value)) {
+      value.forEach((item, i) => {
+        const docId = item.id ? String(item.id) : (String(Date.now()) + '_' + i);
+        batch.set(_db.collection(key).doc(docId), { ...item, _ts: item._ts || Date.now() });
+      });
+    }
+    await batch.commit();
+    return true;
+  } catch(e) { console.error('setJSON', key, e); return false; }
+}
+async function deletePrivate(key) {
+  try { localStorage.removeItem('priv:' + key); } catch(e) {}
+}
+
+/* ============ 基本設定 ============ */
+const ADMIN_CODE = atob('SGVucnk1MDI2Iw==');
+const BLOG_URL = 'https://henrychen66.blogspot.com/?m=1';
+const BLOG_FEED = 'https://henrychen66.blogspot.com/feeds/posts/default?alt=json-in-script';
+const DRIVE_FOLDER_ID = '1A43gNvjyJa8-HkeSZ8paxXfuyGycOQp4';
+const TOOL_NEWS_URL = 'https://trading-news-v1.netlify.app/';
+const TOOL_ETF_URL = 'https://etf-radar.netlify.app/';
+
+const COLORS = {
+  ink: '#1A2230', inkLight: '#2A3548',
+  paper: '#F7F1E3', paperDark: '#E4D9C2',
+  forest: '#2C5F4A', brass: '#C9A24B',
+  stamp: '#A23B2E', muted: '#9C8B6F',
 };
 
-// 把 VERIFIED_HOLDINGS 套用到 STOCKS 之前，先建立一個「依代號查股票」的索引建構函式，
-// 並在 STOCKS 陣列定義完成後，於初始化階段執行 applyVerifiedHoldings() 寫入真實權重。
-const STOCKS = [
-  { code:'2330', name:'台積電', ind:'半導體/晶圓代工', price:2305, chg:+2.18, cap:'59.8兆', pe:32.5,
-    today:true, potential:true, etfNew:1, etfAdd:9,
-    eps:[26.2,22.5,19.8,18.2], rev:[3950,3680,3320,3050],
-    gm:[57.5,57.0,55.5,54.8], op:[46.8,46.2,44.5,43.8], nm:[42.5,41.8,40.5,39.9],
-    yoy:[+39.2,+32.8,+25.5,+15.8], qoq:[+7.3,+10.8,-2.5,+5.5],
-    h10:{eps:[9.2,10.5,12.1,13.5,14.2,15.8,16.5,15.2,22.8,27.2],profit:[3500,4100,4800,5400,5800,6300,7100,6800,9800,11800],div:[3.0,4.0,5.5,7.0,8.0,9.5,11.0,10.5,13.0,16.5],pay:[33,38,45,52,56,60,67,69,57,61]},
-    ph:2620,pl:1520,p5y:720,pct:67,
-    holdings:[
-      {etf:'00992A',rank:1,w:10.8,chg:'NEW'   },
-      {etf:'00981A',rank:2,w:18.5,chg:'+2.2'  },
-      {etf:'00994A',rank:3,w:15.5,chg:'+3.2'  },
-      {etf:'00987A',rank:4,w:18.8,chg:'+4.5'  },
-      {etf:'00995A',rank:5,w:14.5,chg:'+3.8'  },
-      {etf:'00991A',rank:6,w:28.5,chg:'+6.2'  },
-      {etf:'00988A',rank:7,w:8.5, chg:'+1.8'  },
-      {etf:'00982A',rank:8,w:12.8,chg:'+1.5'  },
-      {etf:'00985A',rank:9,w:22.5,chg:'+3.5'  },
-      {etf:'00993A',rank:10,w:11.2,chg:'+1.5' },
-    ]},
-  { code:'2454', name:'聯發科', ind:'半導體/IC設計', price:3600, chg:+5.28, cap:'5.85兆', pe:28.8,
-    today:true, potential:true, etfNew:3, etfAdd:7,
-    eps:[28.8,24.5,21.0,18.8], rev:[2900,2620,2320,2080],
-    gm:[50.5,49.8,48.5,47.8], op:[29.0,28.2,26.8,26.0], nm:[25.2,24.5,23.5,22.8],
-    yoy:[+46.2,+38.8,+28.8,+18.8], qoq:[+10.5,+13.0,+11.5,+8.8],
-    h10:{eps:[3.2,4.5,5.1,6.3,7.8,8.2,6.5,7.9,15.5,23.5],profit:[520,730,850,1050,1280,1380,1050,1300,2520,3820],div:[3.0,4.0,5.0,6.5,8.0,10.0,9.0,11.0,18.0,23.0],pay:[94,89,98,103,103,122,138,139,116,98]},
-    ph:3880,pl:1920,p5y:620,pct:83,
-    holdings:[
-      {etf:'00992A',rank:1,w:12.5,chg:'NEW'  },
-      {etf:'00994A',rank:3,w:14.8,chg:'NEW'  },
-      {etf:'00987A',rank:4,w:13.5,chg:'NEW'  },
-      {etf:'00995A',rank:5,w:10.8,chg:'+2.8' },
-      {etf:'00991A',rank:6,w:8.5, chg:'+2.2' },
-      {etf:'00982A',rank:8,w:7.5, chg:'+1.8' },
-      {etf:'00985A',rank:9,w:7.0, chg:'+1.2' },
-      {etf:'00993A',rank:10,w:5.2,chg:'+0.8' },
-      {etf:'00981A',rank:2,w:8.8, chg:'+2.5' },
-      {etf:'00988A',rank:7,w:6.5, chg:'+1.5' },
-    ]},
-  { code:'6415', name:'矽力-KY', ind:'AI/電源IC', price:3250, chg:+7.18, cap:'3,090億', pe:44.5,
-    today:true, potential:true, etfNew:5, etfAdd:4,
-    eps:[15.8,13.0,10.5,8.8], rev:[292,245,200,168],
-    gm:[55.5,55.0,54.0,53.2], op:[39.0,38.2,37.0,36.2], nm:[35.2,34.5,33.5,32.8],
-    yoy:[+78.5,+63.5,+47.0,+29.5], qoq:[+19.2,+22.5,+19.0,+19.5],
-    h10:{eps:[1.5,2.2,3.5,5.2,7.8,10.2,8.5,11.5,16.8,23.0],profit:[14,21,33,50,74,97,81,109,160,219],div:[0,0,0.5,1.0,2.0,3.5,3.0,4.0,6.0,9.5],pay:[0,0,14,19,26,34,35,35,36,41]},
-    ph:3720,pl:1320,p5y:380,pct:92,
-    holdings:[
-      {etf:'00992A',rank:1,w:7.5, chg:'NEW'  },
-      {etf:'00981A',rank:2,w:5.2, chg:'NEW'  },
-      {etf:'00994A',rank:3,w:6.8, chg:'NEW'  },
-      {etf:'00987A',rank:4,w:5.8, chg:'NEW'  },
-      {etf:'00995A',rank:5,w:4.8, chg:'NEW'  },
-      {etf:'00991A',rank:6,w:4.2, chg:'+2.5' },
-      {etf:'00982A',rank:8,w:5.5, chg:'+1.8' },
-      {etf:'00985A',rank:9,w:3.5, chg:'+0.8' },
-      {etf:'00993A',rank:10,w:3.0,chg:'+0.5' },
-    ]},
-  { code:'3661', name:'世芯-KY', ind:'AI/ASIC客製晶片', price:3180, chg:+4.95, cap:'4,130億', pe:39.5,
-    today:true, potential:true, etfNew:3, etfAdd:6,
-    eps:[19.0,14.5,10.8,8.0], rev:[330,262,202,165],
-    gm:[59.0,57.5,56.0,54.5], op:[43.5,42.0,40.5,38.8], nm:[39.0,37.5,36.0,34.8],
-    yoy:[+99.5,+76.5,+53.5,+36.5], qoq:[+25.9,+29.7,+22.4,+19.2],
-    h10:{eps:[0.5,0.9,1.5,2.8,4.2,6.5,8.9,5.2,12.5,21.5],profit:[6,11,19,36,54,84,115,67,162,279],div:[0,0,0,0,0,2.0,3.0,2.0,5.0,8.5],pay:[0,0,0,0,0,31,34,38,40,40]},
-    ph:3620,pl:1380,p5y:520,pct:89,
-    holdings:[
-      {etf:'00992A',rank:1,w:10.2,chg:'+3.5' },
-      {etf:'00981A',rank:2,w:6.2, chg:'NEW'  },
-      {etf:'00987A',rank:4,w:7.5, chg:'NEW'  },
-      {etf:'00995A',rank:5,w:5.2, chg:'NEW'  },
-      {etf:'00991A',rank:6,w:5.8, chg:'+2.8' },
-      {etf:'00982A',rank:8,w:8.8, chg:'+2.2' },
-      {etf:'00994A',rank:3,w:6.5, chg:'+1.8' },
-      {etf:'00985A',rank:9,w:4.2, chg:'+1.2' },
-      {etf:'00993A',rank:10,w:3.5,chg:'+0.8' },
-    ]},
-  { code:'4977', name:'奇鋐', ind:'散熱/AI伺服器', price:1020, chg:+4.10, cap:'4,710億', pe:37.5,
-    today:true, potential:true, etfNew:2, etfAdd:6,
-    eps:[12.0,9.5,7.8,6.0], rev:[295,250,205,168],
-    gm:[36.5,35.2,33.5,32.2], op:[25.0,23.8,22.5,21.2], nm:[22.2,21.0,19.8,18.5],
-    yoy:[+80.5,+64.2,+47.2,+29.5], qoq:[+18.0,+21.9,+21.9,+19.0],
-    h10:{eps:[2.5,3.2,4.2,5.5,6.8,8.2,7.5,9.5,13.8,19.2],profit:[116,148,194,254,314,379,346,439,637,888],div:[1.5,2.0,3.0,4.0,5.5,7.0,6.5,8.0,12.0,16.5],pay:[60,63,71,73,81,85,87,84,87,86]},
-    ph:1320,pl:510,p5y:130,pct:84,
-    holdings:[
-      {etf:'00992A',rank:1,w:7.8, chg:'NEW'  },
-      {etf:'00981A',rank:2,w:5.8, chg:'+2.0' },
-      {etf:'00994A',rank:3,w:6.5, chg:'NEW'  },
-      {etf:'00987A',rank:4,w:5.5, chg:'+1.8' },
-      {etf:'00995A',rank:5,w:4.8, chg:'+1.2' },
-      {etf:'00991A',rank:6,w:4.2, chg:'+0.8' },
-      {etf:'00982A',rank:8,w:6.5, chg:'+1.5' },
-      {etf:'00985A',rank:9,w:5.0, chg:'+0.8' },
-    ]},
-  { code:'6669', name:'緯穎', ind:'AI伺服器/CSP', price:3380, chg:+3.22, cap:'2,298億', pe:32.5,
-    today:true, potential:true, etfNew:2, etfAdd:5,
-    eps:[26.5,22.0,18.2,14.5], rev:[845,702,575,460],
-    gm:[10.5,10.2,9.8,9.5], op:[7.0,6.8,6.5,6.2], nm:[6.5,6.2,5.8,5.5],
-    yoy:[+85.2,+69.8,+53.5,+39.5], qoq:[+20.4,+22.1,+25.0,+19.5],
-    h10:{eps:[5.5,7.2,8.9,11.2,14.5,16.8,12.2,15.8,24.5,34.0],profit:[374,490,605,762,987,1143,830,1075,1664,2312],div:[3.0,5.0,6.0,8.0,12.0,15.0,10.0,14.0,22.0,31.5],pay:[55,69,67,71,83,89,82,89,90,93]},
-    ph:3800,pl:1920,p5y:720,pct:77,
-    holdings:[
-      {etf:'00981A',rank:2,w:7.0, chg:'+2.8'  },
-      {etf:'00982A',rank:8,w:7.8, chg:'NEW'   },
-      {etf:'00992A',rank:1,w:8.5, chg:'NEW'   },
-      {etf:'00987A',rank:4,w:6.8, chg:'+2.5'  },
-      {etf:'00994A',rank:3,w:5.5, chg:'+1.8'  },
-      {etf:'00991A',rank:6,w:5.2, chg:'+1.5'  },
-      {etf:'00985A',rank:9,w:5.5, chg:'+1.2'  },
-    ]},
-  { code:'2317', name:'鴻海', ind:'AI伺服器/機器人', price:275, chg:+1.85, cap:'3.82兆', pe:16.2,
-    today:true, potential:true, etfNew:1, etfAdd:6,
-    eps:[8.8,8.4,8.0,7.8], rev:[18900,18200,16800,16000],
-    gm:[6.8,6.5,6.2,6.0], op:[4.0,3.8,3.5,3.2], nm:[3.5,3.2,2.9,2.8],
-    yoy:[+19.5,+16.0,+11.5,+7.0], qoq:[+3.8,+8.3,+5.0,+3.2],
-    h10:{eps:[5.8,6.2,6.8,7.2,7.5,8.0,7.5,8.2,9.5,11.2],profit:[8119,8677,9514,10075,10493,11190,10493,11470,13292,15680],div:[4.5,5.0,5.5,6.0,6.5,7.0,6.5,7.5,9.0,11.0],pay:[78,81,81,83,87,88,87,91,95,98]},
-    ph:328,pl:162,p5y:95,pct:56,
-    holdings:[
-      {etf:'00981A',rank:2,w:7.5, chg:'NEW'   },
-      {etf:'00982A',rank:8,w:6.0, chg:'+1.2'  },
-      {etf:'00985A',rank:9,w:8.8, chg:'+2.0'  },
-      {etf:'00991A',rank:6,w:5.8, chg:'+1.0'  },
-      {etf:'00995A',rank:5,w:7.0, chg:'+2.5'  },
-      {etf:'00993A',rank:10,w:5.5,chg:'+0.8'  },
-      {etf:'00992A',rank:1,w:6.5, chg:'+1.5'  },
-    ]},
-  { code:'3231', name:'緯創', ind:'AI伺服器/組裝', price:198, chg:+2.07, cap:'8,712億', pe:23.8,
-    today:false, potential:true, etfNew:1, etfAdd:5,
-    eps:[4.8,4.0,3.4,3.0], rev:[4950,4380,3810,3320],
-    gm:[8.0,7.8,7.5,7.2], op:[4.8,4.5,4.2,3.9], nm:[4.2,3.9,3.7,3.4],
-    yoy:[+49.2,+39.5,+29.5,+19.5], qoq:[+13.0,+14.9,+14.8,+12.7],
-    h10:{eps:[1.2,1.5,1.8,2.2,2.8,3.2,2.5,3.5,4.8,6.5],profit:[528,660,792,968,1232,1408,1100,1540,2112,2860],div:[1.0,1.5,2.0,2.5,3.0,3.5,3.0,4.0,5.5,8.0],pay:[83,100,111,114,107,109,120,114,115,123]},
-    ph:248,pl:105,p5y:45,pct:73,
-    holdings:[
-      {etf:'00982A',rank:8,w:8.0, chg:'+1.5'  },
-      {etf:'00981A',rank:2,w:5.5, chg:'NEW'   },
-      {etf:'00992A',rank:1,w:6.8, chg:'+1.2'  },
-      {etf:'00987A',rank:4,w:6.0, chg:'+0.5'  },
-      {etf:'00985A',rank:9,w:5.2, chg:'+0.8'  },
-      {etf:'00993A',rank:10,w:3.8,chg:'--'    },
-    ]},
-  { code:'2382', name:'廣達', ind:'AI伺服器/雲端', price:392, chg:+2.35, cap:'2.90兆', pe:27.5,
-    today:false, potential:true, etfNew:0, etfAdd:5,
-    eps:[7.5,6.8,6.0,5.5], rev:[2920,2650,2340,2100],
-    gm:[8.8,8.5,8.0,7.8], op:[5.5,5.2,4.8,4.5], nm:[5.0,4.8,4.5,4.2],
-    yoy:[+39.2,+29.0,+19.5,+11.0], qoq:[+10.2,+13.2,+11.4,+8.5],
-    h10:{eps:[1.8,2.2,2.5,2.8,3.2,3.8,3.5,4.0,5.8,7.8],profit:[1325,1621,1843,2064,2358,2801,2580,2950,4280,5765],div:[2.0,2.5,3.0,3.5,4.0,5.0,4.5,5.5,8.5,11.5],pay:[111,114,120,125,125,132,129,138,147,147]},
-    ph:468,pl:238,p5y:112,pct:63,
-    holdings:[
-      {etf:'00981A',rank:2,w:6.0, chg:'+1.2'  },
-      {etf:'00982A',rank:8,w:6.8, chg:'+0.8'  },
-      {etf:'00992A',rank:1,w:7.5, chg:'+1.5'  },
-      {etf:'00987A',rank:4,w:5.0, chg:'+1.8'  },
-      {etf:'00985A',rank:9,w:5.8, chg:'--'    },
-      {etf:'00993A',rank:10,w:4.2,chg:'+0.5'  },
-    ]},
-  { code:'2308', name:'台達電', ind:'電源/AI散熱/機器人', price:448, chg:+0.90, cap:'1.29兆', pe:33.5,
-    today:false, potential:false, etfNew:0, etfAdd:3,
-    eps:[7.5,7.0,6.8,6.5], rev:[1280,1210,1150,1085],
-    gm:[31.0,30.5,30.0,29.5], op:[21.0,20.8,20.5,20.2], nm:[18.5,18.2,18.0,17.8],
-    yoy:[+19.2,+15.0,+11.0,+7.2], qoq:[+5.8,+5.2,+6.0,+5.0],
-    h10:{eps:[3.8,4.2,4.5,4.8,5.0,5.2,4.8,5.5,6.8,8.8],profit:[1093,1208,1294,1380,1438,1496,1380,1582,1954,2530],div:[4.0,4.5,5.0,5.5,6.0,6.5,6.0,7.0,9.0,12.0],pay:[105,107,111,115,120,125,125,127,132,136]},
-    ph:578,pl:342,p5y:238,pct:49,
-    holdings:[
-      {etf:'00981A',rank:2,w:4.8, chg:'+0.5'  },
-      {etf:'00985A',rank:9,w:6.0, chg:'--'    },
-      {etf:'00993A',rank:10,w:5.5,chg:'+0.3'  },
-      {etf:'00991A',rank:6,w:5.2, chg:'--'    },
-    ]},
-];
-
-// ═══════════════════════════════════════════════════════════
-// ★ 套用已驗證真實資料，覆蓋掉內建示範資料 ★
-// 邏輯：
-// 1) 先移除 STOCKS 中所有「dataStatus=verified」的ETF的舊（示範）holdings紀錄
-// 2) 依 VERIFIED_HOLDINGS 重建這些ETF在各股票的真實權重（狀態一律標記為 VERIFIED，
-//    不是 NEW/加碼/減碼，因為這是單一快照、沒有前一筆資料可比對差異）
-// 3) VERIFIED_HOLDINGS 裡若有 STOCKS 原本沒收錄的股票（如高力、川湖、聖暉等），自動建立最小資料卡
-// 4) pending（尚未驗證）的ETF，其原本內建的「示範持股」予以移除——
-//    與其顯示編造的假權重，不如清楚顯示「尚無資料」，避免使用者誤信虛構數字
-// ═══════════════════════════════════════════════════════════
-function applyVerifiedHoldings(){
-  const verifiedCodes = Object.keys(VERIFIED_HOLDINGS);
-  const pendingCodes = ETF_RANK.filter(e=>e.dataStatus==='pending').map(e=>e.code);
-
-  // Step 1+4：移除所有「已驗證ETF」與「待補ETF」在 STOCKS 中的內建示範持股
-  // （已驗證的稍後會被真實資料取代；待補的直接清空，不誤導使用者）
-  const allManagedCodes = [...verifiedCodes, ...pendingCodes];
-  STOCKS.forEach(s=>{
-    s.holdings = s.holdings.filter(h=>!allManagedCodes.includes(h.etf));
-  });
-
-  // Step 2+3：寫入真實驗證資料
-  verifiedCodes.forEach(etfCode=>{
-    const etfMeta = ETF_RANK.find(e=>e.code===etfCode);
-    const rank = etfMeta ? etfMeta.rank : 99;
-    const vh = VERIFIED_HOLDINGS[etfCode];
-    vh.holdings.forEach(h=>{
-      let stock = STOCKS.find(s=>s.code===h.code);
-      if(!stock){
-        // 真實資料中出現、但內建範例庫沒有的股票，建立最小可顯示資料卡
-        stock = {
-          code: h.code, name: h.name, ind: '待分類（已驗證持股）',
-          price: 0, chg: 0, cap: '—', pe: 0,
-          today:false, potential:false, etfNew:0, etfAdd:0,
-          eps:[0,0,0,0], rev:[0,0,0,0], gm:[0,0,0,0], op:[0,0,0,0], nm:[0,0,0,0],
-          yoy:[0,0,0,0], qoq:[0,0,0,0],
-          h10:{eps:Array(10).fill(0),profit:Array(10).fill(0),div:Array(10).fill(0),pay:Array(10).fill(0)},
-          ph:0, pl:0, p5y:0, pct:50,
-          holdings:[], isVerifiedOnly:true,
-        };
-        STOCKS.push(stock);
-      }
-      stock.holdings.push({ etf: etfCode, rank, w: h.weight, chg: 'VERIFIED', snapshotDate: vh.snapshotDate, source: vh.source });
-    });
-  });
-
-  // 重新計算每檔股票的「持有ETF數」等統計（只計入已驗證的，待補的本來就被清空了）
-  STOCKS.forEach(s=>{
-    s.etfNew = s.holdings.filter(h=>h.chg==='NEW').length;
-    s.etfAdd = s.holdings.filter(h=>h.chg!=='NEW' && h.chg!=='EXIT' && h.chg!=='--' && h.chg!=='VERIFIED' && parseFloat(h.chg)>0).length;
-    s.verifiedEtfCount = s.holdings.filter(h=>h.chg==='VERIFIED').length;
-    // potential（潛力股）邏輯調整：以「已驗證ETF中有幾家持有」為準，
-    // 因為待補的6檔目前是空的，門檻同步下修，否則在資料不全時這個標記會永遠失真
-    s.potential = s.verifiedEtfCount >= 3;
-  });
+/* ============ 工具函式 ============ */
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
+    + '  ' + d.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
 }
 
-// ═══ STATE ═══
-let selStock=null, selETF='ALL', tf='today', showPot=false, showInd=false;
-
-// ═══════════════════════════════════════════════════════════
-// 手動貼上更新系統
-// 邏輯：使用者從 MoneyDJ理財網（完整持股，推薦）或 etfinfo.tw（總表異動）複製文字貼上，
-// 程式解析後存入 localStorage，蓋過內建範例資料的對應欄位。
-// 不自動連網抓取（第三方網站資料曾驗證不穩定），確保資料來源由使用者把關。
-// ═══════════════════════════════════════════════════════════
-const STORAGE_KEY = 'etfRadarOverrides_v1';
-
-function loadOverrides(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){ return null; }
-}
-function saveOverrides(data){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+/* ---- 訪客流量統計 ----
+   每次「登入後首次進入非部落格頁面」記錄一筆 visit，key = 'visits'（shared storage），
+   每筆格式：{ ts: timestamp }
+   後台讀取後依日/周/月統計人次（非實名，僅計數）。
+   另外每個 session 只記一次（避免換頁重複計算）。
+*/
+function recordVisit() {
+  const sessionKey = '_visited';
+  if (sessionStorage.getItem(sessionKey)) return;
+  sessionStorage.setItem(sessionKey, '1');
+  // 直接新增一筆到 Firestore visits 集合
+  fsAdd('visits', { ts: Date.now() });
 }
 
-// 套用已儲存的覆寫資料到 STOCKS / ETF_RANK
-function applyOverrides(){
-  const ov = loadOverrides();
-  if(!ov) return;
-  // ETF 層級覆寫：漲跌%、異動筆數、異動金額
-  if(ov.etfUpdates){
-    Object.keys(ov.etfUpdates).forEach(code=>{
-      const e = ETF_RANK.find(x=>x.code===code);
-      if(e){
-        const u = ov.etfUpdates[code];
-        if(u.chgPct!==undefined) e.todayChgPct = u.chgPct;
-        if(u.flowAmt!==undefined) e.todayFlow = u.flowAmt;
-        if(u.txCount!==undefined) e.todayTx = u.txCount;
-      }
-    });
-  }
-  // 個股層級覆寫：今日更新標記、ETF 持股異動明細
-  if(ov.stockUpdates){
-    Object.keys(ov.stockUpdates).forEach(code=>{
-      const s = STOCKS.find(x=>x.code===code);
-      if(s){
-        const u = ov.stockUpdates[code];
-        s.today = true;
-        s.manualNote = u.note || '';
-        s.manualChg = u.chg || '';
-      }
-    });
-  }
-  // 完整持股快照覆寫：頁面重新載入後，依儲存的快照重建每檔ETF在 STOCKS 中的 holdings
-  // 這一步是必要的，因為 STOCKS 陣列每次載入頁面都會重置回程式內建初始值
-  // 快照本身已記錄當初貼上時算好的 NEW/加碼/減碼/持平 狀態，重建時直接還原，不需重新比對
-  if(ov.holdingsSnapshots){
-    Object.keys(ov.holdingsSnapshots).forEach(etfCode=>{
-      const snapshot = ov.holdingsSnapshots[etfCode];
-      const etfMeta = ETF_RANK.find(e=>e.code===etfCode);
-      const rank = etfMeta ? etfMeta.rank : 99;
-      // 先移除此 ETF 在所有股票中的內建（程式碼寫死的）舊持股紀錄
-      STOCKS.forEach(s=>{ s.holdings = s.holdings.filter(h=>h.etf!==etfCode); });
-      Object.keys(snapshot).forEach(stockCode=>{
-        let stock = STOCKS.find(s=>s.code===stockCode);
-        if(!stock){
-          stock = {
-            code: stockCode, name: stockCode, ind: '待分類',
-            price: 0, chg: 0, cap: '—', pe: 0,
-            today:false, potential:false, etfNew:0, etfAdd:0,
-            eps:[0,0,0,0], rev:[0,0,0,0], gm:[0,0,0,0], op:[0,0,0,0], nm:[0,0,0,0],
-            yoy:[0,0,0,0], qoq:[0,0,0,0],
-            h10:{eps:Array(10).fill(0),profit:Array(10).fill(0),div:Array(10).fill(0),pay:Array(10).fill(0)},
-            ph:0, pl:0, p5y:0, pct:50,
-            holdings:[], isUserAdded:true,
-          };
-          STOCKS.push(stock);
-        }
-        const entry = snapshot[stockCode];
-        // 相容舊格式（純數字權重，沒有 chg 欄位）：視為持平
-        const w = typeof entry === 'object' ? entry.w : entry;
-        const chg = typeof entry === 'object' && entry.chg ? entry.chg : '--';
-        stock.holdings.push({ etf: etfCode, rank, w, chg });
-      });
-    });
-    // 重新計算所有股票的 etfNew / etfAdd / potential（依重建後的 holdings）
-    STOCKS.forEach(s=>{
-      s.etfNew = s.holdings.filter(h=>h.chg==='NEW').length;
-      s.etfAdd = s.holdings.filter(h=>h.chg!=='NEW' && h.chg!=='EXIT' && h.chg!=='--' && parseFloat(h.chg)>0).length;
-      if(s.holdings.length >= 5) s.potential = true;
-    });
-  }
-  // 改用 refreshFreshnessDisplay()，讓狀態列同時考慮自動抓取的時間，
-  // 而不是只看這次 override 裡的手動貼上時間（單獨呼叫 updateStatusBar(ov.timestamp) 會漏掉自動抓取的進度）
-  refreshFreshnessDisplay();
+/* ============ 共用元件 ============ */
+function GlobalStyle() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+      * { font-family: 'Noto Sans TC', sans-serif; }
+      .font-display { font-family: 'Noto Serif TC', serif !important; }
+      .font-mono { font-family: 'Roboto Mono', monospace !important; }
+      input:focus, textarea:focus, button:focus { outline: 2px solid ${COLORS.brass}; outline-offset: 1px; }
+      /* 部落格文章內容樣式 */
+      .blog-content b, .blog-content strong { font-weight: 700; color: #1a2230; }
+      .blog-content br { display: block; margin: 2px 0; }
+      .blog-content a { color: ${COLORS.forest}; text-decoration: underline; }
+      .blog-content ul, .blog-content ol { padding-left: 1.4em; margin: 4px 0; }
+      .blog-content li { margin: 2px 0; }
+      .blog-content div, .blog-content p { margin: 2px 0; }
+      .blog-content span[style*="color: red"], .blog-content font[color="red"] { color: #c0392b !important; }
+      .blog-content span[style*="color: blue"], .blog-content font[color="blue"] { color: #1a5276 !important; }
+      .blog-content span[style*="color: green"], .blog-content font[color="green"] { color: ${COLORS.forest} !important; }
+      .blog-content img { max-width: 100%; height: auto; border-radius: 4px; margin: 4px 0; }
+    `}</style>
+  );
 }
-
-function updateStatusBar(ts){
-  const bar = document.getElementById('data-status-bar');
-  const icon = document.getElementById('data-status-icon');
-  const text = document.getElementById('data-status-text');
-  if(!ts){
-    bar.className = '';
-    icon.textContent = '⚪';
-    text.textContent = '尚未貼上更新資料 — 目前顯示為範例資料，請按右側按鈕貼上今日最新資料';
-    return;
-  }
-  const d = new Date(ts);
-  const now = new Date();
-  const hoursSince = (now - d) / 3600000;
-  const dateStr = d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}) + ' ' + d.toLocaleTimeString('zh-TW',{hour12:false,hour:'2-digit',minute:'2-digit'});
-  if(hoursSince < 20){
-    bar.className = 'fresh';
-    icon.textContent = '🟢';
-    text.textContent = `資料已更新：${dateStr}（${hoursSince < 1 ? '不到1小時前' : Math.round(hoursSince)+'小時前'}）`;
-  } else if(hoursSince < 48){
-    bar.className = 'stale';
-    icon.textContent = '🟠';
-    text.textContent = `資料可能過期：上次更新 ${dateStr}（${Math.round(hoursSince/24*10)/10}天前），建議重新貼上`;
-  } else {
-    bar.className = 'old';
-    icon.textContent = '🔴';
-    text.textContent = `資料已過期：上次更新 ${dateStr}（超過${Math.floor(hoursSince/24)}天），請立即更新`;
-  }
+function Stamp({ text = '第一', size = 56, rotate = -8 }) {
+  return (
+    <div className="flex items-center justify-center font-display font-black select-none"
+      style={{ width: size, height: size, borderRadius: '50%', border: `3px double ${COLORS.stamp}`, color: COLORS.stamp, transform: `rotate(${rotate}deg)`, fontSize: size * 0.32, letterSpacing: '0.05em', flexShrink: 0 }}
+    >{text}</div>
+  );
 }
-
-// 統一判斷「資料新鮮度」的進入點：比較「使用者手動貼上的時間」與「自動抓取最後成功時間」，
-// 取兩者中較新的一個來顯示。先前的 bug 是這個狀態列只看 localStorage 裡的手動貼上時間，
-// 完全不知道背景已經有自動抓取在跑，導致即使排程一直成功更新，左側狀態列仍顯示很舊的「已過期」訊息。
-let lastAutoFetchAt = null;
-function refreshFreshnessDisplay(){
-  const ov = loadOverrides();
-  const manualTs = ov && ov.timestamp ? new Date(ov.timestamp).getTime() : null;
-  const autoTs = lastAutoFetchAt ? new Date(lastAutoFetchAt).getTime() : null;
-  const latest = [manualTs, autoTs].filter(t => t !== null).sort((a,b)=>b-a)[0];
-  updateStatusBar(latest ? new Date(latest).toISOString() : null);
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: COLORS.ink }}>
+      <GlobalStyle />
+      <Loader2 className="animate-spin" color={COLORS.brass} size={36} />
+    </div>
+  );
 }
-
-function clearOverrides(){
-  if(!confirm('確定要清除所有已貼上的資料，恢復為範例資料嗎？')){
-    return;
-  }
-  localStorage.removeItem(STORAGE_KEY);
-  location.reload();
+function LoadingRow() {
+  return (
+    <div className="flex items-center justify-center gap-2 py-8" style={{ color: COLORS.muted }}>
+      <Loader2 className="animate-spin" size={20} /> 載入中...
+    </div>
+  );
 }
-
-// ── 解析「ETF排行/異動總表」貼上文字 ──
-// 預期格式（從 etfinfo.tw/active 表格複製）大致長這樣，逐行嘗試比對：
-// 00991A 主動復華未來50・5 筆異動 +3.30%  +5.1 億
-function parseETFTable(text){
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const updates = {};
-  let matched = 0, codes = [];
-  lines.forEach(line=>{
-    const codeMatch = line.match(/(00\d{3}[AD])/);
-    if(!codeMatch) return;
-    const code = codeMatch[1];
-    // 找漲跌百分比，例如 +3.30% 或 -1.25%
-    const pctMatch = line.match(/([+-]\d+\.?\d*)%/);
-    // 找金額，例如 +5.1 億 / -22.2 億 / +367 萬 / —
-    const amtMatch = line.match(/([+-]\d+\.?\d*)\s*(億|萬)/);
-    // 找筆數，例如 5 筆 / 0 筆
-    const txMatch = line.match(/(\d+)\s*筆/);
-    updates[code] = {
-      chgPct: pctMatch ? parseFloat(pctMatch[1]) : undefined,
-      flowAmt: amtMatch ? (amtMatch[1] + amtMatch[2]) : (line.includes('—') ? '—' : undefined),
-      txCount: txMatch ? parseInt(txMatch[1]) : undefined,
-    };
-    matched++;
-    codes.push(code);
-  });
-  return { updates, matched, codes };
+function EmptyState({ text }) {
+  return <div className="text-center py-8 text-sm" style={{ color: COLORS.muted }}>{text}</div>;
 }
-
-// ── 解析「ETF完整持股明細」貼上文字 ──────────────────────────────
-// 支援三種真實格式：
-//
-// 格式①  etfinfo.tw/etf/{代號}/holdings 表格複製（含多餘的「—」漲跌欄位）：
-//   2330台積電 — — — — 7.21%1,406,000 7.21% 1,406,000 — 查看
-//   權重一定是「數字%」，股數是其後的「數字,數字」整數
-//
-// 格式②  投信官網（如 capitalfund.com.tw）申購買回清單複製：
-//   2330 · 台積電 · 8.64% 1,706,000
-//   或無中點：2330 台積電 8.64% 1,706,000
-//
-// 格式③  MoneyDJ理財網「持股狀況」頁複製（★主幹來源，10檔ETF皆適用同一網址格式）：
-//   moneydj.com/etf/x/basic/basic0007.xdjhtm?etfid={代號}.tw
-//   台積電(2330.TW) 9.97 11,960,000.00
-//   國巨*(2327.TW) 5.16 18,313,000.00
-//   特徵：名稱在前，代號在「(代號.TW)」括號內，跟格式①②的「代號在前」順序相反
-//
-// 格式④  台新投信官網（tsit.com.tw）股票明細表複製（00987A適用，已驗證較MoneyDJ新）：
-//   2383 TT 台光電 41,000 7.0163%
-//   特徵：代號 + 交易所代碼「TT」+ 中文名 + 股數 + 權重%，股數在權重「之前」（跟格式①②相反）
-//
-// 共同特徵：每筆資料一定有「4位數股票代號」+「股票名稱（中文/英文/-KY/*等）」+「權重%數字」
-// 股數為選用，抓不到也沒關係，核心要的是「代號＋權重」。
-function parseHoldingsTable(text){
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const rows = []; // { code, name, weight }
-  let skipped = [];
-
-  lines.forEach(line=>{
-    // 排除明顯是表頭、頁尾、FAQ的雜訊行
-    if(/^(代號|股票|權重|貢獻度|持股變化|股數|名稱|查看|上一頁|下一頁|共\s*\d+\s*檔|快照|前\s*10|最大持股|產業圖|列表|完整持股|常見問題|相似|回到|查看配息|個股名稱|投資比例|持有股數|顏色|產業|投資金額)/.test(line)) return;
-
-    let code, name, weight, shares;
-
-    // 先試格式③：名稱在前，代號在「(1234.TW)」或「(1234)」括號內
-    const moneydjMatch = line.match(/^([\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z0-9\-\*]*)\s*\((\d{4})(?:\.TW)?\)/);
-    if(moneydjMatch){
-      name = moneydjMatch[1].trim();
-      code = moneydjMatch[2];
-      const afterParen = line.slice(line.indexOf(')')+1).trim();
-      // MoneyDJ格式的權重是純數字（無%符號），後面接股數（通常帶千分位逗號）
-      // 例："9.97 11,960,000.00" → 權重9.97，股數11,960,000
-      // 用空白切開取第一個token當權重，避免千分位逗號的數字被誤判成權重的一部分
-      const tokens = afterParen.split(/\s+/).filter(Boolean);
-      if(tokens.length){
-        weight = parseFloat(tokens[0]);
-        if(tokens.length > 1){
-          const sharesToken = tokens[1].replace(/,/g,'').replace(/\.00$/,'');
-          const sharesNum = parseInt(sharesToken);
-          if(!isNaN(sharesNum)) shares = sharesNum;
-        }
-      }
-    } else {
-      // 格式④（台新投信官網 tsit.com.tw）：代號 交易所代碼(TT) 中文名 股數 權重%
-      //   2383 TT 台光電 41,000 7.0163%
-      // 特徵：代號後緊接著「TT」、股數在權重之前（跟格式①②相反）
-      const taishinMatch = line.match(/^(\d{4})\s+TT\s+([\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z0-9\-]*)\s+([\d,]+)\s+(\d+\.?\d*)%/);
-      if(taishinMatch){
-        code = taishinMatch[1];
-        name = taishinMatch[2].trim();
-        shares = parseInt(taishinMatch[3].replace(/,/g,''));
-        weight = parseFloat(taishinMatch[4]);
-      } else {
-        // 格式①②：代號在前
-        const codeMatch = line.match(/(\d{4})\s*([\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z0-9\-\*\s]*?)?(?=[\s·,]|\d|$)/);
-        if(!codeMatch) { if(line.length>2) skipped.push(line); return; }
-        code = codeMatch[1];
-
-        // 權重：找所有「數字.數字%」，通常重複兩次（排序欄+顯示欄），取第一個
-        const pctMatches = line.match(/(\d+\.?\d*)%/g);
-        if(!pctMatches || !pctMatches.length){ skipped.push(line); return; }
-        weight = parseFloat(pctMatches[0]);
-
-        // 名稱：代號後到第一個分隔符（·或多個空白或數字%）之間的中文/英文字
-        const afterCode = line.slice(line.indexOf(code) + 4);
-        const nameMatch = afterCode.match(/^[\s·]*([\u4e00-\u9fa5A-Za-z][\u4e00-\u9fa5A-Za-z0-9\-\*]*(?:[\u4e00-\u9fa5A-Za-z0-9\-\*]|\s(?=[\u4e00-\u9fa5]))*)/);
-        if(nameMatch) name = nameMatch[1].trim();
-
-        // 股數：權重後面第一組「數字,數字」或純數字（去除千分位）
-        const afterWeight = line.slice(line.indexOf(pctMatches[0]) + pctMatches[0].length);
-        const sharesMatch = afterWeight.match(/([\d,]{4,})/);
-        shares = sharesMatch ? parseInt(sharesMatch[1].replace(/,/g,'')) : undefined;
-      }
-    }
-
-    if(!code || weight===undefined || isNaN(weight) || weight <= 0 || weight > 100){
-      skipped.push(line); return;
-    }
-
-    rows.push({ code, name, weight, shares });
-  });
-
-  // 去重：同一代號可能因格式雜訊被抓兩次（排序欄+顯示欄各算一次），取第一筆
-  const seen = new Set();
-  const dedup = rows.filter(r=>{
-    if(seen.has(r.code)) return false;
-    seen.add(r.code);
-    return true;
-  });
-
-  return { rows: dedup, skippedCount: skipped.length };
+function Field({ label, value, onChange, placeholder, type = 'text', required = false }) {
+  return (
+    <label className="flex flex-col gap-1 text-sm" style={{ color: COLORS.ink }}>
+      <span className="font-medium">{label}{required && <span style={{ color: COLORS.stamp }}> *</span>}</span>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="rounded px-3 py-2 text-sm font-mono"
+        style={{ border: `1px solid ${COLORS.paperDark}`, background: '#fff', color: COLORS.ink }} />
+    </label>
+  );
 }
-
-// 將解析出的「某檔ETF完整持股」套用到 STOCKS 資料：
-// 1) 先移除該 ETF 在所有股票 holdings 中的舊紀錄
-// 2) 依新貼上的權重，比對 localStorage 中該 ETF 上一次貼上的權重 → 算出 NEW / 加碼 / 減碼 / 持平
-// 3) 沒出現在新清單但出現在舊清單的 → 標記為 EXIT（出清）
-// 4) 寫回 STOCKS[].holdings，並存一份「該ETF上次權重快照」供下次比對
-//    快照同時記錄 weight 與當時算出的 chg 狀態，這樣頁面重新載入時可以原樣還原
-//    （而不是被迫把所有持股重置為「持平」）
-function applyHoldingsUpdate(etfCode, rows){
-  const ov = loadOverrides() || { etfUpdates:{}, stockUpdates:{}, holdingsSnapshots:{} };
-  if(!ov.holdingsSnapshots) ov.holdingsSnapshots = {};
-
-  const etfMeta = ETF_RANK.find(e=>e.code===etfCode);
-  const rank = etfMeta ? etfMeta.rank : 99;
-
-  const prevEntry = ov.holdingsSnapshots[etfCode] || {};
-  // 相容舊格式（純 {code:weight}）與新格式（{code:{w,chg}}）
-  const prevWeights = {};
-  Object.keys(prevEntry).forEach(c=>{
-    prevWeights[c] = typeof prevEntry[c] === 'object' ? prevEntry[c].w : prevEntry[c];
-  });
-
-  const newSnapshot = {};
-  let newCount=0, addCount=0, cutCount=0, sameCount=0, exitCount=0, unknownStocks=[];
-
-  rows.forEach(r=>{
-    const prevW = prevWeights[r.code];
-    let chgLabel;
-    if(prevW === undefined){
-      chgLabel = 'NEW'; newCount++;
-    } else {
-      const diff = Math.round((r.weight - prevW) * 100) / 100;
-      if(diff > 0.04){ chgLabel = `+${diff.toFixed(1)}`; addCount++; }
-      else if(diff < -0.04){ chgLabel = `${diff.toFixed(1)}`; cutCount++; }
-      else { chgLabel = '--'; sameCount++; }
-    }
-    newSnapshot[r.code] = { w: r.weight, chg: chgLabel };
-
-    let stock = STOCKS.find(s=>s.code===r.code);
-    if(!stock){
-      // 資料庫尚未收錄此股票：建立最小可顯示的暫存個股，避免資料遺失
-      stock = {
-        code: r.code, name: r.name || r.code, ind: '待分類',
-        price: 0, chg: 0, cap: '—', pe: 0,
-        today:false, potential:false, etfNew:0, etfAdd:0,
-        eps:[0,0,0,0], rev:[0,0,0,0], gm:[0,0,0,0], op:[0,0,0,0], nm:[0,0,0,0],
-        yoy:[0,0,0,0], qoq:[0,0,0,0],
-        h10:{eps:Array(10).fill(0),profit:Array(10).fill(0),div:Array(10).fill(0),pay:Array(10).fill(0)},
-        ph:0, pl:0, p5y:0, pct:50,
-        holdings:[], isUserAdded:true,
-      };
-      STOCKS.push(stock);
-      unknownStocks.push(r.code+(r.name?` ${r.name}`:''));
-    }
-    // 移除該股票對此ETF的舊紀錄，再寫入新的
-    stock.holdings = stock.holdings.filter(h=>h.etf!==etfCode);
-    stock.holdings.push({ etf: etfCode, rank, w: r.weight, chg: chgLabel });
-    stock.today = true;
-
-    // 重新計算這檔股票的 etfNew / etfAdd 統計
-    stock.etfNew = stock.holdings.filter(h=>h.chg==='NEW').length;
-    stock.etfAdd = stock.holdings.filter(h=>h.chg!=='NEW' && h.chg!=='EXIT' && h.chg!=='--' && parseFloat(h.chg)>0).length;
-    stock.potential = stock.holdings.length >= 5;
-  });
-
-  // 找出出清的股票（舊快照有、新清單沒有）
-  Object.keys(prevWeights).forEach(code=>{
-    if(newSnapshot[code] !== undefined) return; // 還在清單裡，上面已處理
-    const stock = STOCKS.find(s=>s.code===code);
-    if(stock){
-      const had = stock.holdings.find(h=>h.etf===etfCode);
-      if(had){
-        had.chg = 'EXIT'; had.w = 0;
-        stock.etfNew = stock.holdings.filter(h=>h.chg==='NEW').length;
-        stock.etfAdd = stock.holdings.filter(h=>h.chg!=='NEW' && h.chg!=='EXIT' && h.chg!=='--' && parseFloat(h.chg)>0).length;
-        exitCount++;
-      }
-      // 出清的股票不寫入 newSnapshot（代表此ETF已不再持有），
-      // 下次若重新進場會被正確判定為 NEW
-    }
-  });
-
-  ov.holdingsSnapshots[etfCode] = newSnapshot;
-  ov.timestamp = new Date().toISOString();
-  saveOverrides(ov);
-
-  return { newCount, addCount, cutCount, sameCount, exitCount, total: rows.length, unknownStocks };
-}
-
-function populateHoldingsTargetSelect(){
-  const sel = document.getElementById('holdingsTargetETF');
-  if(!sel) return;
-  sel.innerHTML = ETF_RANK.map(e=>`<option value="${e.code}">${e.code} ${e.name}（#${e.rank}）</option>`).join('');
-  updateSourceButtons();
-}
-
-// 依下拉選單目前選中的ETF，動態產生「查詢來源」按鈕。
-// 每檔都有 MoneyDJ（主幹，10檔通用），部分檔次另有已驗證更即時的官網來源。
-// 按鈕用 target="_blank" 開新分頁，使用者複製完表格切回本頁即可直接貼上，不會中斷操作流程。
-function updateSourceButtons(){
-  const sel = document.getElementById('holdingsTargetETF');
-  if(!sel) return;
-  const code = sel.value;
-  const etf = ETF_RANK.find(e=>e.code===code);
-  if(!etf) return;
-  const box = document.getElementById('sourceButtonsList');
-
-  let html = `<a class="srcBtn primary" href="${etf.moneydjUrl}" target="_blank" rel="noopener">
-    📊 開啟 MoneyDJ「${code} 持股狀況」<span class="srcTag">主幹來源</span>
-  </a>`;
-
-  if(etf.officialUrl){
-    html += `<a class="srcBtn" href="${etf.officialUrl}" target="_blank" rel="noopener">
-      🏢 開啟 ${etf.issuer}官網<span class="srcTag" style="background:rgba(0,212,180,.15);color:var(--teal);">較即時</span>
-    </a>`;
-  } else {
-    html += `<span class="srcBtn disabled">🏢 ${etf.officialLabel}</span>`;
-  }
-  box.innerHTML = html;
-}
-
-// ── 解析「個股持股明細」貼上文字（分頁③，個股異動摘要） ──
-// 預期格式：股票代號 名稱 [張數/權重變化] [新增/加碼/減碼/刪除]
-function parseStockTable(text){
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const updates = {};
-  let matched = 0, codes = [];
-  let currentStock = null;
-  lines.forEach(line=>{
-    // 個股代號通常是4位數字開頭
-    const stockMatch = line.match(/^(\d{4})\s*([\u4e00-\u9fa5A-Za-z\-\*]+)/);
-    if(stockMatch){
-      currentStock = stockMatch[1];
-      const exists = STOCKS.find(s=>s.code===currentStock);
-      if(exists){
-        const dirMatch = line.match(/(新增|加碼|減碼|刪除)/);
-        const numMatch = line.match(/([+-]?\d[\d,]*)\s*張/);
-        updates[currentStock] = {
-          note: dirMatch ? dirMatch[1] : '更新',
-          chg: numMatch ? numMatch[1].replace(/,/g,'')+'張' : '',
-        };
-        matched++;
-        codes.push(currentStock);
-      }
-    }
-  });
-  return { updates, matched, codes };
-}
-
-function switchPasteTab(name, el){
-  document.querySelectorAll('.paste-tab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.paste-panel').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('paste-panel-'+name).classList.add('on');
-}
-
-function parsePastedData(){
-  const etfText = document.getElementById('pasteArea').value;
-  const holdingsText = document.getElementById('pasteAreaHoldings').value;
-  const stockText = document.getElementById('pasteAreaStock').value;
-  const resultEl = document.getElementById('parseResult');
-  resultEl.style.display = 'block';
-
-  if(!etfText.trim() && !holdingsText.trim() && !stockText.trim()){
-    resultEl.className = 'error';
-    resultEl.innerHTML = '⚠️ 請至少貼上一種資料';
-    return;
-  }
-
-  const ov = loadOverrides() || { etfUpdates:{}, stockUpdates:{}, holdingsSnapshots:{} };
-  let summary = [];
-  let hasSuccess = false;
-
-  if(etfText.trim()){
-    const { updates, matched, codes } = parseETFTable(etfText);
-    if(matched === 0){
-      summary.push('❌ ETF總表：沒有辨識到任何 00XXXA 格式的ETF代號，請確認貼上內容是否包含代號');
-    } else {
-      Object.assign(ov.etfUpdates, updates);
-      // 直接套用到記憶體中的 ETF_RANK，立即反映在畫面上
-      Object.keys(updates).forEach(code=>{
-        const e = ETF_RANK.find(x=>x.code===code);
-        if(e){
-          const u = updates[code];
-          if(u.chgPct!==undefined) e.todayChgPct = u.chgPct;
-          if(u.flowAmt!==undefined) e.todayFlow = u.flowAmt;
-          if(u.txCount!==undefined) e.todayTx = u.txCount;
-        }
-      });
-      hasSuccess = true;
-      summary.push(`✅ ETF總表：成功辨識 ${matched} 檔ETF（${codes.join('、')}）`);
-      const unknownCodes = codes.filter(c => !ETF_RANK.find(e=>e.code===c));
-      if(unknownCodes.length){
-        summary.push(`⚠️ 注意：${unknownCodes.join('、')} 不在目前追蹤的前10名清單內，已記錄但不會顯示在榜單`);
-      }
-    }
-    ov.timestamp = new Date().toISOString();
-    saveOverrides(ov);
-  }
-
-  if(holdingsText.trim()){
-    const targetETF = document.getElementById('holdingsTargetETF').value;
-    const { rows, skippedCount } = parseHoldingsTable(holdingsText);
-    if(rows.length === 0){
-      summary.push(`❌ 完整持股：在貼上內容中沒有辨識到任何「代號＋權重%」的資料列，請確認複製的是持股明細表格（不是異動摘要或圖表）`);
-    } else {
-      const r = applyHoldingsUpdate(targetETF, rows);
-      hasSuccess = true;
-      const etfName = ETF_RANK.find(e=>e.code===targetETF)?.name || targetETF;
-      summary.push(`✅ 完整持股：${targetETF} ${etfName} 已更新 ${r.total} 檔持股`);
-      summary.push(`　　新進 ${r.newCount}・加碼 ${r.addCount}・減碼 ${r.cutCount}・持平 ${r.sameCount}${r.exitCount?`・出清 ${r.exitCount}`:''}`);
-      if(skippedCount > 0){
-        summary.push(`⚠️ 有 ${skippedCount} 行未能辨識（可能是表頭、頁尾或格式不符的雜訊行，已自動略過）`);
-      }
-      if(r.unknownStocks.length){
-        summary.push(`📌 新增了 ${r.unknownStocks.length} 檔原本資料庫沒有的股票：${r.unknownStocks.slice(0,8).join('、')}${r.unknownStocks.length>8?' 等':''}（已用基本資料建立，財務數據需另外補充）`);
-      }
-    }
-  }
-
-  if(stockText.trim()){
-    const { updates, matched, codes } = parseStockTable(stockText);
-    if(matched === 0){
-      summary.push('❌ 個股明細：沒有辨識到資料庫中已有的股票代號（僅能更新內建的個股清單）');
-    } else {
-      Object.assign(ov.stockUpdates, updates);
-      // 直接套用到記憶體中的 STOCKS
-      Object.keys(updates).forEach(code=>{
-        const s = STOCKS.find(x=>x.code===code);
-        if(s){
-          const u = updates[code];
-          s.today = true;
-          s.manualNote = u.note || '';
-          s.manualChg = u.chg || '';
-        }
-      });
-      hasSuccess = true;
-      summary.push(`✅ 個股明細：成功更新 ${matched} 檔個股（${codes.join('、')}）今日狀態`);
-    }
-    ov.timestamp = new Date().toISOString();
-    saveOverrides(ov);
-  }
-
-  resultEl.className = hasSuccess ? 'success' : 'error';
-  resultEl.innerHTML = summary.join('<br>') + (hasSuccess ? '<br><br>📌 資料已儲存，關閉視窗後畫面將自動套用更新。' : '');
-
-  // 注意：這裡不再呼叫 applyOverrides()，因為 applyHoldingsUpdate() 已經直接修改了
-  // STOCKS 記憶體中的 holdings 並算好正確的 NEW/加碼/減碼狀態。
-  // applyOverrides() 是給「頁面重新載入」時依快照重建用的，重建時無法得知前一刻的狀態，
-  // 一律重建為「持平」；若在這裡又呼叫一次，會把剛算好的加碼/減碼狀態洗掉，故跳過。
-  renderList();
-  buildStrip();
-  buildMQ();
-  if(selStock){
-    const updated = STOCKS.find(s=>s.code===selStock.code);
-    if(updated){ selStock = updated; fillD(selStock); }
-  }
-}
-
-function openPaste(){
-  populateHoldingsTargetSelect();
-  document.getElementById('pasteModal').classList.add('open');
-}
-function closePaste(){ document.getElementById('pasteModal').classList.remove('open'); }
-
-// ── 剪貼簿讀取按鈕（行動瀏覽器「長按貼上」常因系統限制無反應的備用方案） ──
-// 部分手機瀏覽器（尤其非Chrome核心、或內建瀏覽器App）對網頁textarea的
-// 長按貼上手勢支援不穩定，改用 Clipboard API 主動讀取剪貼簿可繞過此問題。
-// 此API需要 HTTPS 環境且使用者需在跳出的權限視窗按「允許」。
-async function readClipboardInto(textareaId){
-  const ta = document.getElementById(textareaId);
-  if(!navigator.clipboard || !navigator.clipboard.readText){
-    alert('此瀏覽器不支援剪貼簿讀取功能。\n\n請改試：\n① 換用 Chrome 瀏覽器開啟本頁面，或\n② 長按文字框，選單若出現「貼上」請再試一次，或\n③ 長按文字框選「全選」後手動輸入內容');
-    return;
-  }
-  try{
-    const text = await navigator.clipboard.readText();
-    if(!text || !text.trim()){
-      alert('剪貼簿目前是空的。請先到 etfinfo.tw 或 MoneyDJ理財網 把資料複製起來，再回來按這個按鈕。');
-      return;
-    }
-    // 用游標位置插入，而非整個覆蓋，方便已有內容時補充貼上
-    const start = ta.selectionStart ?? ta.value.length;
-    const end = ta.selectionEnd ?? ta.value.length;
-    ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
-    ta.focus();
-    // 簡短視覺回饋，讓使用者確認真的貼進去了
-    ta.style.borderColor = 'var(--green)';
-    setTimeout(()=>{ ta.style.borderColor = ''; }, 800);
-  }catch(err){
-    // 最常見的失敗原因是使用者在權限彈窗按了「拒絕」，或瀏覽器政策直接封鎖
-    alert('讀取剪貼簿失敗，可能原因：\n① 您在權限視窗按了「拒絕」→ 請到瀏覽器設定重新允許「剪貼簿」權限後再試\n② 此瀏覽器的安全政策不允許網頁讀取剪貼簿\n\n請改試長按文字框選「貼上」，或換用 Chrome 瀏覽器開啟本頁面。\n\n錯誤訊息：' + err.message);
-  }
-}
-
-
-// ═══ CLOCK ═══
-function tick(){
-  const n=new Date();
-  document.getElementById('clock').textContent=n.toLocaleTimeString('zh-TW',{hour12:false});
-  document.getElementById('datedis').textContent=n.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'});
-}
-setInterval(tick,1000);tick();
-
-// ═══ ETF STRIP ═══
-function buildStrip(){
-  const el=document.getElementById('strip-inner');
-  // ALL button
-  let h=`<div class="etf-card ${selETF==='ALL'?'active':''}" onclick="setETF('ALL',this)" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;min-width:110px;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:var(--gold);letter-spacing:2px;">全部前10</div>
-    <div style="font-size:9px;color:var(--text3);">共識選股追蹤</div>
-  </div>`;
-  ETF_RANK.forEach(e=>{
-    const rc=e.rank<=3?`r${e.rank}`:'rn';
-    const rl=e.rank<=3?`${e.rank===1?'🥇':e.rank===2?'🥈':'🥉'} #${e.rank}` : `#${e.rank}`;
-    const isSel=selETF===e.code;
-    const hasToday = e.todayChgPct!==undefined || e.todayFlow!==undefined;
-    const todayLine = hasToday
-      ? `<div style="font-size:9px;margin-top:3px;padding-top:3px;border-top:1px dashed var(--border2);color:var(--gold);">
-           今日${e.todayChgPct!==undefined?` ${e.todayChgPct>0?'+':''}${e.todayChgPct}%`:''}${e.todayFlow!==undefined?` ｜${e.todayFlow}`:''}${e.todayTx!==undefined?` ｜${e.todayTx}筆`:''}
-         </div>`
-      : '';
-    const statusBadge = e.dataStatus==='verified'
-      ? `<span style="font-size:8px;background:rgba(0,212,180,.15);color:var(--teal);border:1px solid rgba(0,212,180,.35);border-radius:3px;padding:1px 5px;font-weight:700;">✅ 已驗證</span>`
-      : `<span style="font-size:8px;background:rgba(255,255,255,.05);color:var(--text3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;">⏳ 待補資料</span>`;
-    h+=`<div class="etf-card ${isSel?'active':''} ${e.rank<=3?`rank${e.rank}`:''} ${e.dataStatus==='pending'?'pending-etf':''}" onclick="setETF('${e.code}',this)">
-      <div class="ec-rank ${rc}">${rl}</div>
-      <div class="ec-top"><span class="ec-code">${e.code}</span>${isSel?`<span class="ec-sel-badge">選中</span>`:''}</div>
-      <div class="ec-name">${e.name}</div>
-      <div class="ec-ret up">${e.ret2026}</div>
-      <div class="ec-sub"><span class="ec-aum">規模${e.aum}</span><span class="ec-issuer">${e.issuer}</span></div>
-      <div style="margin-top:4px;">${statusBadge}</div>
-      ${todayLine}
-    </div>`;
-  });
-  el.innerHTML=h;
-}
-
-function setETF(code,el){
-  selETF=code;
-  buildStrip();
-  const lbl=code==='ALL'?'10':'1';
-  document.getElementById('active-etf-count').textContent=code==='ALL'?'10':'1';
-  document.getElementById('all-badge').textContent=code==='ALL'?'':'（單檔追蹤）';
-  renderList();
-}
-
-// ═══ MARQUEE ═══
-function buildMQ(){
-  const hot=STOCKS.filter(s=>s.today||s.potential);
-  let t=hot.map(s=>`<span style="color:${s.chg>=0?'var(--red)':'var(--green)'}">▌</span> ${s.code} ${s.name} <b style="color:${s.chg>=0?'var(--red)':'var(--green)'}">${s.chg>=0?'+':''}${s.chg}%</b>`).join('　　');
-  document.getElementById('mqt').innerHTML=t+'　　　　'+t;
-}
-
-// ═══ ETF BAR per stock ═══
-function mkBars(s){
-  const slice=ETF_RANK.slice(0,8);
-  return slice.map(e=>{
-    const h=s.holdings.find(x=>x.etf===e.code);
-    let cls='O',pct=0;
-    if(h){
-      const c=h.chg;
-      if(c==='VERIFIED'){cls='V';pct=Math.min(100,h.w*8+30);}
-      else if(c==='NEW'){cls='N';pct=100;}
-      else if(c==='EXIT'){cls='X';pct=0;}
-      else if(parseFloat(c)>0){cls='U';pct=Math.min(100,parseFloat(c)*18+45);}
-      else if(parseFloat(c)<0){cls='D';pct=Math.max(15,50+parseFloat(c)*10);}
-      else{cls='S';pct=42;}
-    } else if(e.dataStatus==='pending'){
-      cls='P';pct=8; // 待補資料：顯示極矮的灰色虛位，與「無持股(O)」區分
-    }
-    const short=e.code.replace('00','').replace('A','A');
-    return `<div class="ec2">
-      <div class="elb">${short}</div>
-      <div class="ebb"><div class="ebf ${cls}" style="height:${pct}%" title="${e.dataStatus==='pending'?'尚無已驗證資料':(h?(h.chg==='VERIFIED'?'已驗證持股 '+h.w+'%':h.chg):'')}"></div></div>
-    </div>`;
-  }).join('');
-}
-
-// ═══ GET FILTERED HOLDINGS (which ETFs count) ═══
-function getRelevantETFs(){
-  if(selETF==='ALL') return new Set(ETF_RANK.map(e=>e.code));
-  return new Set([selETF]);
-}
-
-// ═══ RENDER LIST ═══
-function getList(){
-  const rel=getRelevantETFs();
-  let list=STOCKS.filter(s=>s.holdings.some(h=>rel.has(h.etf)));
-  const q=document.getElementById('srch').value.trim().toLowerCase();
-  if(showPot) list=list.filter(s=>s.potential);
-  if(q) list=list.filter(s=>s.code.includes(q)||s.name.toLowerCase().includes(q)||s.ind.toLowerCase().includes(q));
-  list.sort((a,b)=>{
-    if(a.today&&!b.today) return -1;
-    if(!a.today&&b.today) return 1;
-    const ah=a.holdings.filter(h=>rel.has(h.etf));
-    const bh=b.holdings.filter(h=>rel.has(h.etf));
-    const as=ah.reduce((s,h)=>s+(h.chg==='NEW'?3:parseFloat(h.chg)>0?2:1),0);
-    const bs=bh.reduce((s,h)=>s+(h.chg==='NEW'?3:parseFloat(h.chg)>0?2:1),0);
-    return bs-as;
-  });
-  return list;
-}
-
-function renderList(){
-  const list=getList();
-  const rel=getRelevantETFs();
-  document.getElementById('stock-count').textContent=list.length;
-  const el=document.getElementById('slist');
-  if(!list.length){el.innerHTML=`<div class="nr">🔍 暫無符合條件的個股</div>`;return;}
-  el.innerHTML=list.map((s,i)=>{
-    const cs=s.chg>=0?'up':'dn', sg=s.chg>=0?'+':'';
-    const relH=s.holdings.filter(h=>rel.has(h.etf));
-    const newCnt=relH.filter(h=>h.chg==='NEW').length;
-    const addCnt=relH.filter(h=>parseFloat(h.chg)>0).length;
-    const holdCnt=relH.length;
-    let bg='';
-    if(s.today) bg+=`<span class="bg bh">▲ 今日更新</span>`;
-    if(newCnt>0) bg+=`<span class="bg bn">★ 新進場×${newCnt}</span>`;
-    if(addCnt>=3) bg+=`<span class="bg ba">↑ 多方加碼×${addCnt}</span>`;
-    if(s.potential) bg+=`<span class="bg bc">◈ 共識潛力</span>`;
-    bg+=`<span class="bg bi">${s.ind}</span>`;
-    const topRank=relH.length>0?Math.min(...relH.map(h=>h.rank)):99;
-    const hasTop3=relH.some(h=>h.rank<=3);
-    if(hasTop3) bg+=`<span class="bg bx">🥇 冠軍ETF持有</span>`;
-    const manualLine = s.manualNote ? `<div style="font-size:10px;color:var(--gold);margin-top:4px;padding-top:4px;border-top:1px dashed var(--border2);">📋 手動更新：${s.manualNote}${s.manualChg?` ${s.manualChg}`:''}</div>` : '';
-    return `<div class="sc${s.today?' hot':''}${s.potential?' pot':''}" onclick="pick('${s.code}')" id="sc-${s.code}">
-      <div class="ps">✨ 潛力</div>
-      <div class="sr1">
-        <div class="srk">#${i+1}</div>
-        <div class="sinfo">
-          <div class="sid"><span class="scode">${s.code}</span><span class="sname">${s.name}</span></div>
-          <div class="sind">${s.ind}</div>
+function ModalShell({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(26,34,48,0.7)' }}>
+      <div className="w-full max-w-md rounded-lg p-6" style={{ background: COLORS.paper, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-xl font-bold" style={{ color: COLORS.ink }}>{title}</h3>
+          <button onClick={onClose} aria-label="關閉"><X size={20} color={COLORS.ink} /></button>
         </div>
-        <div class="spw"><div class="sp ${cs}">$${s.price.toLocaleString()}</div><div class="sc2 ${cs}">${sg}${s.chg}%</div></div>
+        {children}
       </div>
-      <div class="bgs">${bg}</div>
-      <div style="display:flex;align-items:flex-end;gap:5px;">
-        <div style="font-size:8px;color:var(--text3);padding-bottom:2px;">ETF覆蓋：</div>
-        <div class="emx">${mkBars(s)}</div>
-        <div class="upt">${s.today?'09:22':'--:--'}</div>
+    </div>
+  );
+}
+
+/* ---- 下載／使用工具紀錄 ----
+   每次會員下載心得分享檔案或使用好用工具時，記錄一筆：
+   { email, username, itemType: 'resource'|'tool', itemName, ts }
+   存於 shared storage 'access-logs'，後台可查閱。
+*/
+async function logAccess({ email, username, itemType, itemName }) {
+  await fsAdd('access-logs', { email, username, itemType, itemName, ts: Date.now() });
+}
+
+/* ============ Email 確認 Modal（下載/使用工具前，若會員資料無 Email 則要求補填） ============ */
+function EmailGateModal({ profile, itemName, onConfirm, onClose }) {
+  const [email, setEmail] = useState(profile.email || '');
+  const [err, setErr] = useState('');
+
+  function handle(e) {
+    e.preventDefault();
+    if (!email.trim() || !email.includes('@')) { setErr('請輸入有效的 Email'); return; }
+    onConfirm(email.trim());
+  }
+
+  return (
+    <ModalShell title="請輸入 Email 以繼續" onClose={onClose}>
+      <p className="text-sm mb-4" style={{ color: '#6b5d4f' }}>
+        即將開啟「{itemName}」。為了讓您順利取得雲端資料／工具，請留下 Email，僅用於資料存取紀錄。
+      </p>
+      <form onSubmit={handle} className="flex flex-col gap-3">
+        <Field label="Email" value={email} onChange={setEmail} placeholder="您的 Email" type="email" required />
+        {err && <p className="text-xs" style={{ color: COLORS.stamp }}>{err}</p>}
+        <button type="submit" className="rounded py-2.5 font-display font-bold flex items-center justify-center gap-2" style={{ background: COLORS.forest, color: '#fff' }}>
+          <ExternalLink size={16} /> 確認並前往
+        </button>
+      </form>
+    </ModalShell>
+  );
+}
+
+/* ============ 登入門牆 AuthGate ============ */
+function AuthGate({ onComplete, onBack }) {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [fb, setFb] = useState('');
+  const [line, setLine] = useState('');
+  const [err, setErr] = useState('');
+
+  function handle(e) {
+    e.preventDefault();
+    if (!username.trim()) { setErr('請填寫會員名稱'); return; }
+    if (!email.trim()) { setErr('請填寫 Email（必填）'); return; }
+    if (!email.includes('@')) { setErr('Email 格式不正確'); return; }
+    onComplete({ username: username.trim(), email: email.trim(), fb: fb.trim(), line: line.trim() });
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: `linear-gradient(180deg, ${COLORS.ink} 0%, ${COLORS.inkLight} 100%)` }}>
+      <GlobalStyle />
+      <div className="w-full max-w-sm rounded-lg p-8" style={{ background: COLORS.paper }}>
+        {onBack && (
+          <button onClick={onBack} className="text-xs flex items-center gap-1 mb-4" style={{ color: COLORS.muted }}>
+            <ChevronLeft size={14} /> 返回瀏覽
+          </button>
+        )}
+        <div className="flex flex-col items-center mb-6">
+          <Stamp text="第一" size={60} rotate={-5} />
+          <h1 className="font-display text-2xl font-black mt-3" style={{ color: COLORS.ink }}>第一名操盤日記</h1>
+          <p className="text-xs font-mono mt-1" style={{ color: COLORS.muted }}>會員登入 / 註冊</p>
+        </div>
+        <form onSubmit={handle} className="flex flex-col gap-3">
+          <Field label="會員名稱" value={username} onChange={setUsername} placeholder="您的暱稱" required />
+          <Field label="Email" value={email} onChange={setEmail} placeholder="必填，用於通知與聯絡" type="email" required />
+          <p className="text-xs" style={{ color: COLORS.muted }}>以下為選填，方便您留下更多聯絡方式</p>
+          <Field label="Facebook 帳號" value={fb} onChange={setFb} placeholder="選填" />
+          <Field label="Line ID" value={line} onChange={setLine} placeholder="選填" />
+          {err && <p className="text-xs" style={{ color: COLORS.stamp }}>{err}</p>}
+          <button type="submit" className="rounded py-2.5 font-display font-bold flex items-center justify-center gap-2 mt-1" style={{ background: COLORS.forest, color: '#fff' }}>
+            <LogIn size={18} /> 進入會員專區
+          </button>
+        </form>
+        <p className="text-xs text-center mt-4" style={{ color: COLORS.muted }}>
+          本站完全免費，填寫資料僅供辨識身份，<br />不做其他用途。
+        </p>
       </div>
-      <div class="srow2">
-        <span>持有</span><span class="sv a">${holdCnt}</span>
-        <span>加碼</span><span class="sv g">${addCnt}</span>
-        <span>新進</span><span class="sv o">${newCnt}</span>
-        <span>最高排名ETF</span><span class="sv" style="color:var(--${topRank<=3?'rank'+topRank:'text2'});">#${topRank}</span>
-        <span>共識</span><span class="sv p">${Math.round(holdCnt/10*100)}%</span>
-      </div>
-      ${manualLine}
-    </div>`;
-  }).join('');
-}
-
-// ═══ PICK STOCK ═══
-function pick(code){
-  selStock=STOCKS.find(s=>s.code===code);
-  if(!selStock) return;
-  document.querySelectorAll('.sc').forEach(e=>e.classList.remove('sel'));
-  const el=document.getElementById('sc-'+code);
-  if(el) el.classList.add('sel');
-  document.getElementById('welcome').style.display='none';
-  document.getElementById('indv').style.display='none';
-  document.getElementById('detail').style.display='flex';
-  showInd=false;
-  fillD(selStock);
-}
-
-function fillD(s){
-  const cs=s.chg>=0?'up':'dn', sg=s.chg>=0?'+':'';
-  document.getElementById('d-code').textContent=s.code;
-  document.getElementById('d-name').textContent=s.name;
-  const pe=document.getElementById('d-price');
-  pe.textContent='$'+s.price.toLocaleString(); pe.className='dhp '+cs;
-  const ce=document.getElementById('d-chg');
-  ce.textContent=sg+s.chg+'%'; ce.className='dhc '+cs;
-  let bg=`<span class="bg bi">${s.ind}</span>`;
-  if(s.potential) bg+=`<span class="bg bc">◈ 共識潛力</span>`;
-  if(s.today) bg+=`<span class="bg bh">▲ 今日更新</span>`;
-  document.getElementById('d-badges').innerHTML=bg;
-  const topEtf=s.holdings.sort((a,b)=>a.rank-b.rank)[0];
-  document.getElementById('d-quick').innerHTML=[
-    {l:'市值',v:s.cap},{l:'本益比',v:s.pe+'x'},
-    {l:'持有ETF數',v:s.holdings.length+'檔'},
-    {l:'最高排名ETF',v:'#'+topEtf.rank+' '+topEtf.etf},
-    {l:'共識強度',v:Math.round(s.holdings.length/10*100)+'%'},
-    {l:'今年新進',v:s.etfNew+'檔'}
-  ].map(x=>`<div class="dhq"><div class="ql">${x.l}</div><div class="qv">${x.v}</div></div>`).join('');
-  fillETF(s); fillFund(s); fillTech(s); fillHist(s); fillDiv2(s);
-}
-
-function fillETF(s){
-  const sorted=[...s.holdings].sort((a,b)=>a.rank-b.rank);
-  let rows=sorted.map(h=>{
-    const etf=ETF_RANK.find(e=>e.code===h.etf)||{name:h.etf,issuer:'—',ret2026:'—',rank:99};
-    const c=h.chg;
-    let cc='cs',cl='持平';
-    if(c==='VERIFIED'){
-      cc='cv-verified';
-      cl=`✅ 已驗證 (${h.snapshotDate||'—'})`;
-    }
-    else if(c==='NEW'){cc='cn';cl='★ 新進場';}
-    else if(c==='EXIT'){cc='cx';cl='✕ 已出清';}
-    else if(parseFloat(c)>0){cc='cu';cl=`↑ +${c}%`;}
-    else if(parseFloat(c)<0){cc='cd';cl=`↓ ${c}%`;}
-    const rc=h.rank<=3?`r${h.rank}`:'rn';
-    const rl=h.rank<=3?['🥇','🥈','🥉'][h.rank-1]+` #${h.rank}`:`#${h.rank}`;
-    const sourceLine = c==='VERIFIED' ? `<div style="font-size:9px;color:var(--teal);margin-top:1px;">來源：${h.source||'—'}</div>` : '';
-    return `<tr>
-      <td><span class="erank-badge ${rc}">${rl}</span></td>
-      <td><div class="enm">${etf.name}</div><div class="eis">${etf.issuer} — 今年${etf.ret2026}</div>${sourceLine}</td>
-      <td><div class="ecode">${h.etf}</div></td>
-      <td><div class="wb"><div class="wbg"><div class="wbf" style="width:${Math.min(100,h.w*5)}%"></div></div><div class="wv">${h.w}%</div></div></td>
-      <td><span class="cc ${cc}">${cl}</span></td>
-    </tr>`;
-  }).join('');
-  const newCnt=s.holdings.filter(h=>h.chg==='NEW').length;
-  const addCnt=s.holdings.filter(h=>parseFloat(h.chg)>0 && h.chg!=='VERIFIED').length;
-  const verifiedCnt=s.holdings.filter(h=>h.chg==='VERIFIED').length;
-  const pendingList = ETF_RANK.filter(e=>e.dataStatus==='pending').map(e=>e.code).join('、');
-  document.getElementById('tab-etf').innerHTML=`
-    <table class="etbl"><tr><th>績效排名</th><th>ETF名稱</th><th>代號</th><th>持股比重</th><th>狀態</th></tr>${rows}</table>
-    ${s.holdings.length===0 ? `<div style="padding:16px;text-align:center;color:var(--text3);font-size:12px;">目前沒有任何已驗證的ETF持有此股，或此股不在已驗證的4檔ETF的前10大持股內。</div>` : ''}
-    <div class="cbox"><div class="cbt">持股共識統計（僅計入已驗證資料）</div>
-    <div class="cbg">
-      <div class="cbi"><div class="cl">已驗證持有</div><div class="cv" style="color:var(--teal);">${verifiedCnt}</div></div>
-      <div class="cbi"><div class="cl">加碼</div><div class="cv" style="color:var(--green);">${addCnt}</div></div>
-      <div class="cbi"><div class="cl">新進</div><div class="cv" style="color:var(--gold);">${newCnt}</div></div>
-      <div class="cbi"><div class="cl">最高排名ETF</div><div class="cv" style="color:var(--rank${s.holdings.length?Math.min(3,s.holdings.sort((a,b)=>a.rank-b.rank)[0].rank):3});">${s.holdings.length?'#'+s.holdings.sort((a,b)=>a.rank-b.rank)[0].rank:'—'}</div></div>
     </div>
-    <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border2);font-size:10px;color:var(--text3);">
-      ⏳ 尚待驗證的ETF（${pendingList}）目前無資料，不計入統計。待補齊後共識數字會更新。
-    </div>
-    </div>`;
+  );
 }
 
-function fillFund(s){
-  const Q=['2025Q1','2024Q4','2024Q3','2024Q2'];
-  document.getElementById('tab-fund').innerHTML=`
-    <div class="fg">
-      ${[{l:'最新季EPS',v:'$'+s.eps[0],sub:`YoY ${s.yoy[0]>0?'+':''}${s.yoy[0]}%`,pos:s.yoy[0]>0},
-         {l:'月營收(億)',v:s.rev[0],sub:`QoQ ${s.qoq[0]>0?'+':''}${s.qoq[0]}%`,pos:s.qoq[0]>0},
-         {l:'毛利率',v:s.gm[0]+'%',sub:`QoQ +${(s.gm[0]-s.gm[1]).toFixed(1)}%`,pos:s.gm[0]>s.gm[1]},
-         {l:'營業利益率',v:s.op[0]+'%',sub:`QoQ +${(s.op[0]-s.op[1]).toFixed(1)}%`,pos:s.op[0]>s.op[1]},
-         {l:'稅後淨利率',v:s.nm[0]+'%',sub:`QoQ +${(s.nm[0]-s.nm[1]).toFixed(1)}%`,pos:s.nm[0]>s.nm[1]},
-         {l:'本益比',v:s.pe+'x',sub:s.pe<30?'合理估值':'注意高估',pos:s.pe<30}
-       ].map(c=>`<div class="fc"><div class="fl">${c.l}</div><div class="fv">${c.v}</div><div class="fs ${c.pos?'p':'n'}">${c.sub}</div></div>`).join('')}
-    </div>
-    <table class="qt"><tr><th>季度</th>${Q.map(q=>`<th>${q}</th>`).join('')}</tr>
-      <tr><td>EPS</td>${s.eps.map((v,i)=>`<td class="${v>=(s.eps[i+1]||0)?'pv':'nv'}">$${v}</td>`).join('')}</tr>
-      <tr><td>毛利率</td>${s.gm.map(v=>`<td class="pv">${v}%</td>`).join('')}</tr>
-      <tr><td>營業利益率</td>${s.op.map(v=>`<td class="pv">${v}%</td>`).join('')}</tr>
-      <tr><td>稅後淨利率</td>${s.nm.map(v=>`<td class="pv">${v}%</td>`).join('')}</tr>
-      <tr><td>月營收(億)</td>${s.rev.map((v,i)=>`<td class="${v>=(s.rev[i+1]||0)?'pv':'nv'}">${v}</td>`).join('')}</tr>
-      <tr><td>YoY</td>${s.yoy.map(v=>`<td class="${v>=0?'pv':'nv'}">${v>0?'+':''}${v}%</td>`).join('')}</tr>
-      <tr><td>QoQ</td>${s.qoq.map(v=>`<td class="${v>=0?'pv':'nv'}">${v>0?'+':''}${v}%</td>`).join('')}</tr>
-    </table>`;
-}
-
-function fillTech(s){
-  const p=s.pct,col=p>75?'var(--red)':p>45?'var(--gold)':'var(--green)';
-  document.getElementById('tab-tech').innerHTML=`
-    <div class="pl">
-      <div class="pli"><div class="pll">52週高點</div><div class="plv" style="color:var(--red);">$${s.ph.toLocaleString()}</div></div>
-      <div class="pli"><div class="pll">52週低點</div><div class="plv" style="color:var(--green);">$${s.pl.toLocaleString()}</div></div>
-      <div class="pli"><div class="pll">目前股價</div><div class="plv" style="color:var(--accent);">$${s.price.toLocaleString()}</div></div>
-      <div class="pli"><div class="pll">5年底部</div><div class="plv" style="color:var(--text2);">$${s.p5y.toLocaleString()}</div></div>
-    </div>
-    <div class="pctb">
-      <div class="pctbl">📍 歷史百分位分析</div>
-      <div class="plabs"><span>歷史低 0%</span><span>中位 50%</span><span>歷史高 100%</span></div>
-      <div class="pbar"><div class="pbarf" style="width:100%"></div><div class="pm" style="left:${p}%"></div></div>
-      <div class="pctv" style="color:${col};">目前：歷史 ${p}% 百分位 — ${p>75?'⚠️ 偏高區間':p>45?'📊 中段偏上':'✅ 相對低檔'}</div>
-      <div class="psub">
-        <div class="psi"><div class="psl">距52週高</div><div class="psv" style="color:var(--red);">-${((s.ph-s.price)/s.ph*100).toFixed(1)}%</div></div>
-        <div class="psi"><div class="psl">距52週低</div><div class="psv" style="color:var(--green);">+${((s.price-s.pl)/s.pl*100).toFixed(1)}%</div></div>
-      </div>
-    </div>`;
-}
-
-function fillHist(s){
-  const h=s.h10,ys=Array.from({length:10},(_,i)=>2015+i);
-  const mx=Math.max(...h.profit);
-  document.getElementById('tab-hist').innerHTML=`
-    <div class="bw"><div class="bb">${h.eps.map((v,i)=>{
-      const pct=Math.round((h.profit[i]/mx)*90)+5;
-      return `<div class="bi2"><div class="bg2"><div class="bf p" style="height:${pct}%"></div></div><div class="byr">${ys[i]}</div><div class="bvl">$${v}</div></div>`;
-    }).join('')}</div></div>
-    <table class="qt"><tr><th>年度</th>${ys.map(y=>`<th>${y}</th>`).join('')}</tr>
-      <tr><td>EPS</td>${h.eps.map((v,i)=>`<td class="${v>=(h.eps[i-1]||0)?'pv':'nv'}">$${v}</td>`).join('')}</tr>
-      <tr><td>獲利(億)</td>${h.profit.map((v,i)=>`<td class="${v>=(h.profit[i-1]||0)?'pv':'nv'}">${v}</td>`).join('')}</tr>
-    </table>`;
-}
-
-function fillDiv2(s){
-  const h=s.h10,ys=Array.from({length:10},(_,i)=>2015+i);
-  const a3=(h.div.slice(-3).reduce((a,b)=>a+b,0)/3).toFixed(1);
-  const p3=Math.round(h.pay.slice(-3).reduce((a,b)=>a+b,0)/3);
-  const y=((h.div[9]/s.price)*100).toFixed(2);
-  document.getElementById('tab-div').innerHTML=`
-    <table class="dvt"><tr><th>年度</th>${ys.map(y=>`<th>${y}</th>`).join('')}</tr>
-      <tr><td>股利(元)</td>${h.div.map(v=>`<td class="pv">$${v}</td>`).join('')}</tr>
-      <tr><td>配發率</td>${h.pay.map(v=>`<td class="${v>100?'pv':''}">${v}%</td>`).join('')}</tr>
-      <tr><td>EPS</td>${h.eps.map(v=>`<td>$${v}</td>`).join('')}</tr>
-    </table>
-    <div class="ds">
-      <div class="dsi"><div class="dsl">近3年均股利</div><div class="dsv" style="color:var(--gold);">$${a3}</div></div>
-      <div class="dsi"><div class="dsl">近3年配發率</div><div class="dsv" style="color:var(--purple);">${p3}%</div></div>
-      <div class="dsi"><div class="dsl">現價殖利率</div><div class="dsv" style="color:var(--green);">${y}%</div></div>
-    </div>`;
-}
-
-// ═══ INDUSTRY VIEW ═══
-const IICONS={'半導體/晶圓代工':'💡','半導體/IC設計':'🧠','AI/ASIC客製晶片':'🤖','AI/電源IC':'⚡','AI伺服器/CSP':'🖥️','AI伺服器/機器人':'🦾','AI伺服器/組裝':'🏭','AI伺服器/雲端':'☁️','散熱/AI伺服器':'❄️','電源/AI散熱/機器人':'🔋'};
-function renderInd(){
-  const rel=getRelevantETFs();
-  const map={};
-  STOCKS.forEach(s=>{
-    if(!s.holdings.some(h=>rel.has(h.etf))) return;
-    if(!map[s.ind]) map[s.ind]=[];
-    map[s.ind].push(s);
-  });
-  const dates=['今日','5/8','5/7','5/5','5/2'];
-  document.getElementById('indv').innerHTML=Object.keys(map).map(ind=>{
-    const ss=map[ind];
-    return `<div class="is">
-      <div class="ih"><span class="iico">${IICONS[ind]||'📊'}</span><span class="inm">${ind}</span><span class="icnt">${ss.length}檔</span></div>
-      ${ss.map((s,i)=>{
-        const rel2=s.holdings.filter(h=>rel.has(h.etf));
-        const newCnt=rel2.filter(h=>h.chg==='NEW').length;
-        const addCnt=rel2.filter(h=>parseFloat(h.chg)>0).length;
-        return `<div class="ti">
-          <div class="td">${dates[i%dates.length]}</div>
-          <div class="tb3">
-            <div class="tr2">
-              <span class="tc2">${s.code}</span>
-              <span class="tn">${s.name}</span>
-              <span class="tpc" style="color:${s.chg>=0?'var(--red)':'var(--green)'}">${s.chg>=0?'+':''}${s.chg}%</span>
-            </div>
-            <div class="tdes">${newCnt>0?`新進×${newCnt} / `:''}加碼×${addCnt} — ${rel2.length}檔ETF持有，最高排名 #${Math.min(...rel2.map(h=>h.rank))}</div>
+/* ============ Header ============ */
+function Header({ profile, tab, setTab, onLogout, menuOpen, setMenuOpen }) {
+  const tabs = [
+    { id: 'home', label: '首頁', icon: TrendingUp },
+    { id: 'blog', label: '部落格專區', icon: BookOpen },
+    { id: 'resources', label: '心得分享', icon: FolderOpen },
+    { id: 'experts', label: '達人講座', icon: Megaphone },
+    { id: 'tools', label: '好用工具', icon: Wrench },
+  ];
+  return (
+    <header className="sticky top-0 z-30" style={{ background: COLORS.ink, borderBottom: `3px double ${COLORS.brass}` }}>
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Stamp text="第一" size={44} rotate={-6} />
+          <div>
+            <h1 className="font-display text-lg md:text-xl font-bold text-white leading-tight">第一名操盤日記</h1>
+            <p className="text-xs font-mono" style={{ color: COLORS.brass }}>穩健・長線・存股實踐</p>
           </div>
-          ${s.potential?`<span class="bg bc" style="align-self:center;margin-left:5px;">◈</span>`:''}
-        </div>`;
-      }).join('')}
-    </div>`;
-  }).join('');
-}
-
-// ═══ CONTROLS ═══
-function setTF(f,el){
-  tf=f;
-  document.querySelectorAll('.tt').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
-  renderList();
-  if(showInd) renderInd();
-}
-function togPot(){
-  showPot=!showPot;
-  document.getElementById('btn-pot').classList.toggle('on',showPot);
-  renderList();
-}
-function togInd(){
-  showInd=!showInd;
-  document.getElementById('btn-ind').classList.toggle('on',showInd);
-  if(showInd){
-    showOverlap=false;
-    document.getElementById('btn-overlap').classList.remove('on');
-    document.getElementById('overlapv').style.display='none';
-    document.getElementById('welcome').style.display='none';
-    document.getElementById('detail').style.display='none';
-    document.getElementById('indv').style.display='block';
-    renderInd();
-  } else {
-    document.getElementById('indv').style.display='none';
-    document.getElementById('welcome').style.display='flex';
-  }
-}
-
-// ═══ 共識排行（最多ETF共同持有）═══
-// 這是僅依「已驗證真實資料」運算出的排行，不混入示範或待補ETF的虛構數字。
-// 隨著更多ETF被驗證補齊，這個排行會自動納入更多資料、結果更準確，不需要改程式碼。
-let showOverlap=false;
-function togOverlap(){
-  showOverlap=!showOverlap;
-  document.getElementById('btn-overlap').classList.toggle('on',showOverlap);
-  if(showOverlap){
-    showInd=false;
-    document.getElementById('btn-ind').classList.remove('on');
-    document.getElementById('indv').style.display='none';
-    document.getElementById('welcome').style.display='none';
-    document.getElementById('detail').style.display='none';
-    document.getElementById('overlapv').style.display='block';
-    renderOverlap();
-  } else {
-    document.getElementById('overlapv').style.display='none';
-    document.getElementById('welcome').style.display='flex';
-  }
-}
-
-function renderOverlap(){
-  const verifiedTotal = ETF_RANK.filter(e=>e.dataStatus==='verified').length;
-  const pendingNames = ETF_RANK.filter(e=>e.dataStatus==='pending').map(e=>e.code).join('、');
-
-  const overlap = STOCKS
-    .filter(s => s.verifiedEtfCount > 0)
-    .map(s => {
-      const verifiedHoldings = s.holdings.filter(h=>h.chg==='VERIFIED').sort((a,b)=>a.rank-b.rank);
-      return {
-        code: s.code, name: s.name,
-        count: s.verifiedEtfCount,
-        etfs: verifiedHoldings.map(h=>h.etf),
-        avgWeight: (verifiedHoldings.reduce((sum,h)=>sum+h.w,0) / verifiedHoldings.length).toFixed(2),
-      };
-    })
-    .sort((a,b) => b.count - a.count || b.avgWeight - a.avgWeight);
-
-  const rows = overlap.map((o,i)=>{
-    const rankCls = i===0?'top1':i===1?'top2':i===2?'top3':'';
-    const dots = Array.from({length:verifiedTotal},(_,j)=>`<div class="ov-dot ${j<o.count?'on':''}"></div>`).join('');
-    return `<div class="ov-row">
-      <div class="ov-rank ${rankCls}">${i+1}</div>
-      <div class="ov-info">
-        <span class="ov-code">${o.code}</span><span class="ov-name">${o.name}</span>
-        <div class="ov-etfs">${o.etfs.join('、')} ・ 平均權重 ${o.avgWeight}%</div>
+        </div>
+        <nav className="hidden md:flex items-center gap-1">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className="px-3 py-2 text-sm font-medium rounded transition flex items-center gap-1.5"
+              style={{ color: tab === t.id ? COLORS.ink : '#E8E1D2', background: tab === t.id ? COLORS.brass : 'transparent' }}>
+              <t.icon size={16} /> {t.label}
+            </button>
+          ))}
+        </nav>
+        <div className="hidden md:flex items-center gap-3">
+          {profile
+            ? <><span className="text-sm font-mono" style={{ color: '#E8E1D2' }}>{profile.username} 會員</span>
+                <button onClick={onLogout} title="登出" aria-label="登出"><LogOut size={18} color="#E8E1D2" /></button></>
+            : <button onClick={() => setTab('__login__')} className="text-sm font-mono flex items-center gap-1.5 px-3 py-1.5 rounded" style={{ background: COLORS.brass, color: COLORS.ink }}>
+                <LogIn size={16} /> 登入
+              </button>
+          }
+        </div>
+        <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="選單">
+          {menuOpen ? <X color="#fff" /> : <Menu color="#fff" />}
+        </button>
       </div>
-      <div class="ov-count">
-        <div class="ov-count-num">${o.count}<span style="font-size:10px;color:var(--text3);">/${verifiedTotal}</span></div>
-        <div class="ov-count-label">已驗證ETF</div>
-        <div class="ov-dots">${dots}</div>
-      </div>
-    </div>`;
-  }).join('');
+      {menuOpen && (
+        <div className="md:hidden px-4 pb-3 flex flex-col gap-1">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className="px-3 py-2 text-sm font-medium rounded transition flex items-center gap-2 text-left"
+              style={{ color: tab === t.id ? COLORS.ink : '#E8E1D2', background: tab === t.id ? COLORS.brass : 'transparent' }}>
+              <t.icon size={16} /> {t.label}
+            </button>
+          ))}
+          <div className="flex items-center justify-between pt-2 mt-1" style={{ borderTop: `1px solid ${COLORS.inkLight}` }}>
+            {profile
+              ? <><span className="text-sm font-mono text-white">{profile.username} 會員</span>
+                  <button onClick={onLogout} className="text-sm flex items-center gap-1" style={{ color: COLORS.brass }}>
+                    <LogOut size={14} /> 登出
+                  </button></>
+              : <button onClick={() => { setTab('__login__'); setMenuOpen(false); }}
+                  className="text-sm flex items-center gap-1" style={{ color: COLORS.brass }}>
+                  <LogIn size={14} /> 登入會員
+                </button>
+            }
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
 
-  document.getElementById('overlapv').innerHTML = `
-    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
-      <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px;">🏅 最多ETF共同持有排行</div>
-      <div style="font-size:11px;color:var(--text2);line-height:1.6;">
-        統計目前 <span style="color:var(--teal);font-weight:700;">${verifiedTotal}檔已驗證ETF</span>（${ETF_RANK.filter(e=>e.dataStatus==='verified').map(e=>e.code).join('、')}）的前10大持股交集，找出被最多家同時持有的個股。
-      </div>
-      ${pendingNames ? `<div style="font-size:10px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border2);">⏳ 尚待驗證：${pendingNames}（補齊後排行會自動納入更新，目前統計基準是 ${verifiedTotal} 檔而非完整10檔）</div>` : ''}
+/* ============ 需要登入的包裝器 ============ */
+function RequireLogin({ profile, onRequestLogin, children }) {
+  if (profile) return children;
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-20 text-center">
+      <Stamp text="第一" size={64} rotate={-5} />
+      <h2 className="font-display text-2xl font-bold mt-4 mb-2" style={{ color: COLORS.paper }}>此區需要登入</h2>
+      <p className="mb-6 text-sm" style={{ color: COLORS.muted }}>請先登入會員即可免費使用所有功能</p>
+      <button onClick={onRequestLogin} className="px-6 py-3 rounded font-display font-bold flex items-center gap-2 mx-auto" style={{ background: COLORS.brass, color: COLORS.ink }}>
+        <LogIn size={18} /> 免費登入 / 註冊
+      </button>
     </div>
-    ${rows || '<div class="nr">尚無資料</div>'}
-  `;
+  );
 }
 
-function swT(name,el){
-  document.querySelectorAll('.dt').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
-  document.getElementById('tab-'+name).classList.add('on');
+/* ============ 版面包裝 ============ */
+function SectionWrap({ title, subtitle, action, children }) {
+  return (
+    <section className="max-w-5xl mx-auto px-4 py-10">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <div>
+          <h2 className="font-display text-2xl md:text-3xl font-bold" style={{ color: COLORS.paper }}>{title}</h2>
+          {subtitle && <p className="text-sm mt-1" style={{ color: COLORS.brass }}>{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+      <div className="rounded-lg p-5 md:p-6" style={{ background: COLORS.paper }}>
+        {children}
+      </div>
+    </section>
+  );
 }
-function openHelp(){document.getElementById('hmodal').classList.add('open');}
-function closeHelp(){document.getElementById('hmodal').classList.remove('open');}
-// ═══════════════════════════════════════════════════════════
-// ★ 連接 Netlify Scheduled Function 取得自動抓取的最新持股 ★
-// 邏輯：頁面載入時呼叫 /.netlify/functions/get-etf-holdings，
-// 若拿到自動抓取的資料，動態覆蓋寫死在程式碼裡的 VERIFIED_HOLDINGS，
-// 並把對應 ETF 的 dataStatus 從 'pending' 自動升級成 'verified'。
-//
-// 失敗時的降級策略（重要）：
-// - fetch 失敗、逾時、或回傳格式不對 → 安靜失敗，不影響網站運作，
-//   繼續使用程式碼裡寫死的 VERIFIED_HOLDINGS（4檔）當作最後保底
-// - 這個函式只會「新增/更新」資料，不會把已經驗證好的資料洗掉成空白
-// ═══════════════════════════════════════════════════════════
-async function fetchLiveHoldings(){
-  const statusEl = document.getElementById('auto-fetch-status');
-  if(statusEl) statusEl.textContent = '🔄 正在連接自動抓取服務...';
-  try{
-    const res = await fetch('/.netlify/functions/get-etf-holdings', {
-      signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined,
-    });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data = await res.json();
 
-    if(data.status !== 'ok' || !data.etfs || Object.keys(data.etfs).length === 0){
-      console.log('[ETF自動抓取] 尚無資料或排程未執行過，使用內建驗證資料。');
-      if(statusEl) statusEl.innerHTML = '⚪ 自動抓取尚無資料（排程可能還沒執行過首輪），目前顯示內建驗證資料';
-      return { applied: 0, source: 'fallback' };
-    }
+/* ============ 首頁 ============ */
+function Home({ setTab }) {
+  const cards = [
+    { id: 'blog', title: '部落格專區', desc: '每週操盤紀錄與盤勢觀察，無需登入即可瀏覽。', icon: BookOpen, badge: '公開' },
+    { id: 'resources', title: '心得分享專區', desc: '大跌精選定存股、高股息清單、長線投資祕笈（需以 Email 登入）。', icon: FolderOpen, badge: '登入' },
+    { id: 'experts', title: '達人講座專區', desc: '不定期開課，免費與付費場次線上報名（需以 Email 登入）。', icon: Megaphone, badge: '登入' },
+    { id: 'tools', title: '好用工具專區', desc: '即時股市新聞、ETF跟單系統與下載工具（需以 Email 登入）。', icon: Wrench, badge: '登入' },
+  ];
+  return (
+    <div>
+      <section className="px-4 py-16 text-center" style={{ background: `linear-gradient(180deg, ${COLORS.ink} 0%, ${COLORS.inkLight} 100%)` }}>
+        <div className="flex justify-center mb-4"><Stamp text="第一" size={80} rotate={-4} /></div>
+        <h2 className="font-display text-4xl md:text-5xl font-black text-white mb-3">穩健・長線・存股</h2>
+        <p className="font-mono max-w-xl mx-auto" style={{ color: COLORS.brass }}>
+          數十年操盤紀錄，陪你打造屬於自己的財富存摺
+        </p>
+      </section>
+      <section className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {cards.map((c) => (
+          <button key={c.id} onClick={() => setTab(c.id)}
+            className="text-left rounded-lg p-5 flex flex-col gap-2 transition hover:-translate-y-1 relative"
+            style={{ background: COLORS.paper, border: `1px solid ${COLORS.paperDark}` }}>
+            <span className="absolute top-3 right-3 text-xs font-mono px-2 py-0.5 rounded"
+              style={{ background: c.badge === '公開' ? COLORS.forest : COLORS.inkLight, color: c.badge === '公開' ? '#fff' : COLORS.brass }}>
+              {c.badge}
+            </span>
+            <c.icon style={{ color: COLORS.forest }} />
+            <h3 className="font-display text-lg font-bold" style={{ color: COLORS.ink }}>{c.title}</h3>
+            <p className="text-sm" style={{ color: '#6b5d4f' }}>{c.desc}</p>
+          </button>
+        ))}
+      </section>
+    </div>
+  );
+}
 
-    let appliedCount = 0;
-    Object.keys(data.etfs).forEach(code=>{
-      const etfData = data.etfs[code];
-      if(!etfData.holdings || !etfData.holdings.length) return;
-
-      // 動態覆蓋/新增到 VERIFIED_HOLDINGS（自動抓取的資料優先於程式碼寫死的舊快照）
-      VERIFIED_HOLDINGS[code] = {
-        snapshotDate: etfData.snapshotDate || '未知日期',
-        source: etfData.source || 'Netlify自動抓取',
-        holdings: etfData.holdings,
-      };
-
-      // 把對應的 ETF_RANK 項目標記為 verified（即使原本是 pending）
-      const etfMeta = ETF_RANK.find(e=>e.code===code);
-      if(etfMeta) etfMeta.dataStatus = 'verified';
-
-      appliedCount++;
-    });
-
-    if(appliedCount > 0){
-      // 用最新抓到的資料重新套用一次（會覆蓋掉先前 applyVerifiedHoldings() 寫入的舊快照）
-      applyVerifiedHoldings();
-      // 記錄自動抓取成功的時間，並讓左側「資料新鮮度」狀態列也一併反映，
-      // 不再只看使用者手動貼上的時間（這是先前回報的bug：自動抓取明明成功，左側卻一直顯示「已過期8天」）
-      lastAutoFetchAt = data.lastRunAt || new Date().toISOString();
-      refreshFreshnessDisplay();
-    }
-
-    if(statusEl){
-      const hoursText = data.hoursAgo !== null ? `${data.hoursAgo}小時前` : '時間未知';
-      statusEl.innerHTML = `🟢 自動抓取：${appliedCount}檔資料（更新於 ${hoursText}）`;
-    }
-    console.log(`[ETF自動抓取] 成功套用 ${appliedCount} 檔自動抓取資料，最後執行時間：${data.lastRunAt}`);
-    return { applied: appliedCount, source: 'live', lastRunAt: data.lastRunAt, hoursAgo: data.hoursAgo };
-  }catch(err){
-    // 安靜失敗：常見原因是還沒部署 Netlify Function、或本機開發環境沒有 /.netlify/functions 路由
-    console.log('[ETF自動抓取] 呼叫失敗（將使用內建驗證資料作為備援）：', err.message);
-    if(statusEl) statusEl.innerHTML = '⚪ 自動抓取服務未連接，目前顯示內建驗證資料';
-    return { applied: 0, source: 'fallback', error: err.message };
+/* ============ 部落格（公開，不需登入） ============ */
+function useBlogPosts() {
+  const [posts, setPosts] = useState(null);
+  const [error, setError] = useState(false);
+  const cbRef = useRef(null);
+  useEffect(() => {
+    const cbName = `_blogCb_${Date.now()}`;
+    const script = document.createElement('script');
+    let done = false;
+    const timer = setTimeout(() => { if (!done) { done = true; setError(true); document.head.removeChild(script); } }, 8000);
+    window[cbName] = (data) => {
+      clearTimeout(timer);
+      if (done) return; done = true;
+      delete window[cbName];
+      try {
+        const entries = (data.feed.entry || []).map((e) => ({
+          id: e.id.$t,
+          title: e.title.$t,
+          published: e.published.$t,
+          link: (e.link.find((l) => l.rel === 'alternate') || {}).href || BLOG_URL,
+          // 保留 HTML 原始內容供渲染，同時保留純文字摘要作備用
+          html: (e.content || e.summary || { $t: '' }).$t,
+          snippet: (e.summary || e.content || { $t: '' }).$t.replace(/<[^>]+>/g, '').slice(0, 120),
+        }));
+        setPosts(entries);
+      } catch (ex) { setError(true); }
+    };
+    script.src = `${BLOG_FEED}&max-results=15&callback=${cbName}`;
+    script.onerror = () => { clearTimeout(timer); if (!done) { done = true; setError(true); } };
+    document.head.appendChild(script);
+    return () => { clearTimeout(timer); };
+  }, []);
+  return { posts, error };
+}
+function PostRow({ post }) {
+  const [expanded, setExpanded] = useState(false);
+  const d = new Date(post.published);
+  const dateStr = d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric' });
+  return (
+    <div className="py-5" style={{ borderBottom: `1px dashed ${COLORS.paperDark}` }}>
+      <p className="text-xs font-mono mb-1" style={{ color: COLORS.muted }}>{dateStr}</p>
+      <a href={post.link} target="_blank" rel="noopener noreferrer"
+        className="font-display font-bold text-lg hover:underline block mb-3" style={{ color: COLORS.ink }}>
+        {post.title}
+      </a>
+      {post.html ? (
+        <>
+          {/* 文章 HTML 內容，保留原始排版 */}
+          <div className="blog-content text-sm"
+            style={{ color: '#3d2e1e', lineHeight: 1.8, maxHeight: expanded ? 'none' : '220px', overflow: 'hidden', position: 'relative' }}
+            dangerouslySetInnerHTML={{ __html: post.html }} />
+          {!expanded && (
+            <div style={{ height: 48, marginTop: -48, background: `linear-gradient(transparent, ${COLORS.paper})`, position: 'relative' }} />
+          )}
+          <div className="flex items-center gap-4 mt-2 flex-wrap">
+            <button onClick={() => setExpanded(!expanded)}
+              className="text-xs font-mono flex items-center gap-1" style={{ color: COLORS.forest }}>
+              {expanded ? '▲ 收合' : '▼ 展開閱讀全文'}
+            </button>
+            <a href={post.link} target="_blank" rel="noopener noreferrer"
+              className="text-xs font-mono flex items-center gap-1" style={{ color: COLORS.muted }}>
+              前往部落格原文 <ExternalLink size={12} />
+            </a>
+          </div>
+        </>
+      ) : (
+        <>
+          {post.snippet && <p className="text-sm mt-1" style={{ color: '#6b5d4f' }}>{post.snippet}…</p>}
+          <a href={post.link} target="_blank" rel="noopener noreferrer"
+            className="text-xs font-mono mt-2 flex items-center gap-1" style={{ color: COLORS.forest }}>
+            閱讀全文 <ExternalLink size={14} />
+          </a>
+        </>
+      )}
+    </div>
+  );
+}
+function BlogSection() {
+  const { posts, error } = useBlogPosts();
+  const [page, setPage] = useState(0);
+  const perPage = 3;
+  let list = [], weekOnly = true;
+  if (posts) {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recent = posts.filter((p) => new Date(p.published).getTime() >= weekAgo);
+    if (recent.length > 0) { list = recent; } else { list = posts.slice(0, 6); weekOnly = false; }
   }
+  const totalPages = Math.max(1, Math.ceil(list.length / perPage));
+  const pageItems = list.slice(page * perPage, page * perPage + perPage);
+  return (
+    <SectionWrap title="部落格專區" subtitle="第一名操盤日記・每週盤勢觀察與操盤紀錄"
+      action={<a href={BLOG_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-mono px-4 py-2 rounded flex items-center gap-1.5" style={{ background: COLORS.brass, color: COLORS.ink }}>
+        前往完整部落格 <ExternalLink size={14} /></a>}>
+      {posts === null && <LoadingRow />}
+      {error && <p className="text-sm mb-3" style={{ color: COLORS.stamp }}>目前無法即時讀取最新文章，請點擊上方按鈕前往部落格閱覽。</p>}
+      {posts && list.length === 0 && !error && <EmptyState text="目前尚無文章，請前往部落格查看完整內容。" />}
+      {posts && list.length > 0 && (
+        <>
+          {!weekOnly && <p className="text-sm mb-2" style={{ color: COLORS.muted }}>本週尚無更新文章，以下為最新發佈的文章</p>}
+          <div>{pageItems.map((p) => <PostRow key={p.id} post={p} />)}</div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-4 font-mono text-sm">
+              <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="flex items-center gap-1" style={{ color: page === 0 ? COLORS.paperDark : COLORS.forest }}>
+                <ChevronLeft size={16} /> 上一頁</button>
+              <span style={{ color: COLORS.ink }}>{page + 1} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page === totalPages - 1} className="flex items-center gap-1" style={{ color: page === totalPages - 1 ? COLORS.paperDark : COLORS.forest }}>
+                下一頁 <ChevronRight size={16} /></button>
+            </div>
+          )}
+        </>
+      )}
+    </SectionWrap>
+  );
 }
 
-document.getElementById('srch').addEventListener('input',renderList);
+/* ============ 心得分享（需登入） ============ */
+function ResourcesSection({ profile, onRequestLogin, onSaveProfile }) {
+  const items = [
+    { title: '大跌精選定存股清單', desc: '每次股市大幅修正時，整理出的績優定存股口袋名單（Excel）。' },
+    { title: '高股息定存股清單', desc: '三年平均投報率6%以上的績優定存股清單，定期更新（Excel）。' },
+    { title: '長線投資祕笈', desc: '數十年操盤心法，長線佈局策略與選股邏輯整理。' },
+    { title: '財富與人生分享', desc: '投資理財之外，關於財富觀念與人生哲學的文章分享。' },
+  ];
+  const [pendingOpen, setPendingOpen] = useState(false);
 
-// ═══ INIT ═══
-// 順序：
-// 1) 先用程式碼內寫死的4檔已驗證資料墊底，確保網站一開啟就有真實資料可看（不等網路）
-// 2) 非同步呼叫 Netlify Function，若成功抓到更新的資料，動態覆蓋並重新渲染畫面
-// 3) 最後套用使用者透過「貼上更新」存的 localStorage 覆寫（使用者手動貼的優先權最高）
-applyVerifiedHoldings();
-applyOverrides();
-buildStrip();
-buildMQ();
-renderList();
-
-fetchLiveHoldings().then(result=>{
-  if(result.applied > 0){
-    // 自動抓取成功且有新資料：套用覆寫、重新整理畫面
-    applyOverrides(); // 重新套用使用者的貼上資料，確保不被自動抓取結果蓋掉
-    buildStrip();
-    buildMQ();
-    renderList();
-    if(selStock){
-      const updated = STOCKS.find(s=>s.code===selStock.code);
-      if(updated){ selStock = updated; fillD(selStock); }
+  function handleOpenDrive() {
+    if (profile.email) {
+      logAccess({ email: profile.email, username: profile.username, itemType: 'resource', itemName: '心得分享資料夾' });
+      window.open(`https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}`, '_blank', 'noopener,noreferrer');
+    } else {
+      setPendingOpen(true);
     }
   }
-});
+  async function confirmEmailThenOpen(email) {
+    await onSaveProfile({ ...profile, email });
+    logAccess({ email, username: profile.username, itemType: 'resource', itemName: '心得分享資料夾' });
+    setPendingOpen(false);
+    window.open(`https://drive.google.com/drive/folders/${DRIVE_FOLDER_ID}`, '_blank', 'noopener,noreferrer');
+  }
+
+  return (
+    <SectionWrap title="心得分享專區" subtitle="不定期更新的定存股清單與長線投資知識整理"
+      action={profile && <button onClick={handleOpenDrive} className="text-sm font-mono px-4 py-2 rounded flex items-center gap-1.5" style={{ background: COLORS.brass, color: COLORS.ink }}>
+        開啟雲端資料夾 <ExternalLink size={14} /></button>}>
+      <RequireLogin profile={profile} onRequestLogin={onRequestLogin}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {items.map((it) => (
+            <div key={it.title} className="rounded p-4" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+              <h3 className="font-display font-bold mb-1" style={{ color: COLORS.ink }}>{it.title}</h3>
+              <p className="text-sm" style={{ color: '#6b5d4f' }}>{it.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded overflow-hidden" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+          <iframe src={`https://drive.google.com/embeddedfolderview?id=${DRIVE_FOLDER_ID}#list`}
+            title="心得分享資料夾" style={{ width: '100%', height: '480px', border: 'none' }} />
+        </div>
+        <p className="text-xs mt-2" style={{ color: COLORS.muted }}>
+          若資料夾內容無法顯示，請點擊上方「開啟雲端資料夾」前往 Google 雲端硬碟瀏覽與下載。
+        </p>
+        {pendingOpen && (
+          <EmailGateModal profile={profile} itemName="心得分享資料夾" onClose={() => setPendingOpen(false)} onConfirm={confirmEmailThenOpen} />
+        )}
+      </RequireLogin>
+    </SectionWrap>
+  );
+}
+
+/* ============ 管理者驗證入口 ============ */
+function AdminGate({ children }) {
+  const [open, setOpen] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [code, setCode] = useState('');
+  const [err, setErr] = useState('');
+  if (!open) return (
+    <button onClick={() => setOpen(true)} className="text-xs underline mt-6 flex items-center gap-1" style={{ color: COLORS.muted }}>
+      <Lock size={12} /> 管理者設定
+    </button>
+  );
+  if (!authed) return (
+    <div className="mt-6 p-4 rounded" style={{ border: `1px dashed ${COLORS.paperDark}` }}>
+      <form onSubmit={(e) => { e.preventDefault(); if (code === ADMIN_CODE) { setAuthed(true); setErr(''); } else setErr('驗證碼錯誤'); }}
+        className="flex flex-col gap-2">
+        <label className="text-sm font-medium flex items-center gap-1.5" style={{ color: COLORS.ink }}>
+          <Lock size={16} color={COLORS.muted} /> 輸入管理者驗證碼
+        </label>
+        <input type="password" value={code} onChange={(e) => setCode(e.target.value)} placeholder="驗證碼" className="rounded px-3 py-2 text-sm font-mono" style={{ border: `1px solid ${COLORS.paperDark}` }} />
+        {err && <p className="text-xs" style={{ color: COLORS.stamp }}>{err}</p>}
+        <button type="submit" className="rounded py-1.5 text-sm font-bold" style={{ background: COLORS.ink, color: COLORS.brass }}>驗證</button>
+      </form>
+    </div>
+  );
+  return <div className="mt-6 p-4 rounded" style={{ border: `1px dashed ${COLORS.paperDark}` }}>{children}</div>;
+}
+
+/* ============ 達人講座報名 Modal（需實名+電話） ============ */
+function RegisterModal({ event, onClose, onSubmit }) {
+  const [realName, setRealName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handle(e) {
+    e.preventDefault();
+    if (!realName.trim()) { setErr('請填寫真實姓名'); return; }
+    if (!phone.trim()) { setErr('請填寫聯絡電話'); return; }
+    setSubmitting(true);
+    await onSubmit({ realName: realName.trim(), phone: phone.trim(), note: note.trim() });
+    setSubmitting(false);
+  }
+
+  return (
+    <ModalShell title={`報名：${event.title}`} onClose={onClose}>
+      <div className="text-sm mb-4 flex flex-col gap-1" style={{ color: '#6b5d4f' }}>
+        <span className="flex items-center gap-1.5"><Calendar size={14} /> {formatDateTime(event.datetime)}</span>
+        <span className="flex items-center gap-1.5"><MapPin size={14} /> {event.location}</span>
+        <span className="font-mono">{event.feeType === 'free' ? '免費入場' : `費用：NT$ ${event.price}`}</span>
+        {event.feeType === 'paid' && <span className="text-xs">報名成功後，主辦單位將依您填寫的聯絡方式通知付款資訊。</span>}
+      </div>
+      <form onSubmit={handle} className="flex flex-col gap-3">
+        <Field label="真實姓名" value={realName} onChange={setRealName} placeholder="請填寫真實姓名（必填）" required />
+        <Field label="聯絡電話" value={phone} onChange={setPhone} placeholder="例如：0912-345-678（必填）" type="tel" required />
+        <label className="flex flex-col gap-1 text-sm" style={{ color: COLORS.ink }}>
+          <span className="font-medium">備註（選填）</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="rounded px-3 py-2 text-sm"
+            style={{ border: `1px solid ${COLORS.paperDark}`, background: '#fff' }} />
+        </label>
+        {err && <p className="text-xs" style={{ color: COLORS.stamp }}>{err}</p>}
+        <button type="submit" disabled={submitting} className="rounded py-2.5 font-display font-bold" style={{ background: COLORS.forest, color: '#fff' }}>
+          {submitting ? '送出中...' : '確認報名'}
+        </button>
+      </form>
+    </ModalShell>
+  );
+}
+
+/* ============ 講座卡片 ============ */
+function EventCard({ ev, onRegister, registered }) {
+  const past = new Date(ev.datetime) < new Date();
+  return (
+    <div className="rounded-lg p-5 flex flex-col gap-2" style={{ border: `1px solid ${COLORS.paperDark}`, opacity: past ? 0.7 : 1 }}>
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-display font-bold text-lg leading-tight" style={{ color: COLORS.ink }}>{ev.title}</h3>
+        <span className="text-xs font-mono px-2 py-0.5 rounded shrink-0"
+          style={{ background: ev.feeType === 'free' ? COLORS.forest : COLORS.stamp, color: '#fff' }}>
+          {ev.feeType === 'free' ? '免費' : `NT$ ${ev.price}`}
+        </span>
+      </div>
+      {ev.speaker && <p className="text-sm font-medium" style={{ color: COLORS.forest }}>主講：{ev.speaker}</p>}
+      <p className="text-xs font-mono flex items-center gap-1" style={{ color: COLORS.muted }}><Calendar size={14} /> {formatDateTime(ev.datetime)}</p>
+      <p className="text-xs font-mono flex items-center gap-1" style={{ color: COLORS.muted }}><MapPin size={14} /> {ev.location}</p>
+      {ev.capacity && <p className="text-xs" style={{ color: COLORS.muted }}>名額：{ev.capacity} 人</p>}
+      {ev.description && <p className="text-sm" style={{ color: '#6b5d4f' }}>{ev.description}</p>}
+      {!past && (
+        <button onClick={onRegister} disabled={registered}
+          className="mt-2 rounded py-2 text-sm font-display font-bold"
+          style={{ background: registered ? COLORS.paperDark : COLORS.brass, color: registered ? COLORS.muted : COLORS.ink }}>
+          {registered ? '✔ 已報名' : '立即報名'}
+        </button>
+      )}
+      {past && <p className="text-xs mt-1 text-center" style={{ color: COLORS.muted }}>此場次已結束</p>}
+    </div>
+  );
+}
+
+/* ============ 後台：講座管理（含報名名單 + 統計） ============ */
+function ExpertAdminForm({ events, onSaved }) {
+  const [title, setTitle] = useState('');
+  const [speaker, setSpeaker] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [location, setLocation] = useState('');
+  const [feeType, setFeeType] = useState('free');
+  const [price, setPrice] = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [desc, setDesc] = useState('');
+  const [regs, setRegs] = useState([]);
+  const [expanded, setExpanded] = useState(null);
+
+  useEffect(() => { loadRegs(); }, []);
+  async function loadRegs() { setRegs(await getJSON('event-registrations', true, [])); }
+
+  async function addEvent(e) {
+    e.preventDefault();
+    if (!title.trim() || !date || !time || !location.trim()) return;
+    const newEvent = {
+      id: `${Date.now()}`, title: title.trim(), speaker: speaker.trim(),
+      datetime: `${date}T${time}`, location: location.trim(), feeType,
+      price: feeType === 'paid' ? Number(price) || 0 : 0,
+      capacity: capacity ? Number(capacity) : null, description: desc.trim(),
+    };
+    await fsAdd('expert-events', newEvent);
+    setTitle(''); setSpeaker(''); setDate(''); setTime(''); setLocation(''); setFeeType('free'); setPrice(''); setCapacity(''); setDesc('');
+    onSaved();
+  }
+  async function removeEvent(id) {
+    // 找到該事件的 Firestore 文件 ID 並刪除
+    const evDoc = events.find(ev => ev.id === id);
+    if (evDoc && evDoc._docId) await fsDel('expert-events', evDoc._docId);
+    else await fsDelWhere('expert-events', 'id', id);
+    onSaved();
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h4 className="font-display font-bold mb-3" style={{ color: COLORS.ink }}>新增講座場次</h4>
+        <form onSubmit={addEvent} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="主題" value={title} onChange={setTitle} placeholder="例如：存股族的資產配置課" />
+          <Field label="講師／來賓" value={speaker} onChange={setSpeaker} placeholder="選填" />
+          <Field label="日期" value={date} onChange={setDate} type="date" />
+          <Field label="時間" value={time} onChange={setTime} type="time" />
+          <Field label="地點" value={location} onChange={setLocation} placeholder="例如：線上 Zoom 或實體地址" />
+          <Field label="名額（選填）" value={capacity} onChange={setCapacity} type="number" placeholder="不限請留空" />
+          <div className="flex flex-col gap-1 text-sm md:col-span-2" style={{ color: COLORS.ink }}>
+            <span className="font-medium">費用</span>
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex items-center gap-1.5"><input type="radio" checked={feeType === 'free'} onChange={() => setFeeType('free')} /> 免費</label>
+              <label className="flex items-center gap-1.5"><input type="radio" checked={feeType === 'paid'} onChange={() => setFeeType('paid')} /> 付費</label>
+              {feeType === 'paid' && <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="NT$ 金額" className="rounded px-2 py-1 text-sm font-mono" style={{ border: `1px solid ${COLORS.paperDark}` }} />}
+            </div>
+          </div>
+          <label className="flex flex-col gap-1 text-sm md:col-span-2" style={{ color: COLORS.ink }}>
+            <span className="font-medium">內容說明</span>
+            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} className="rounded px-3 py-2 text-sm" style={{ border: `1px solid ${COLORS.paperDark}`, background: '#fff' }} />
+          </label>
+          <button type="submit" className="md:col-span-2 rounded py-2 font-display font-bold flex items-center justify-center gap-2" style={{ background: COLORS.brass, color: COLORS.ink }}>
+            <Plus size={18} /> 新增場次
+          </button>
+        </form>
+      </div>
+      <div>
+        <h4 className="font-display font-bold mb-3" style={{ color: COLORS.ink }}>已建立場次 ・ 報名名單</h4>
+        {events.length === 0 && <p className="text-sm" style={{ color: COLORS.muted }}>尚未建立任何場次。</p>}
+        <div className="flex flex-col gap-2">
+          {events.map((ev) => {
+            const eventRegs = regs.filter((r) => r.eventId === ev.id);
+            return (
+              <div key={ev.id} className="rounded p-3" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="font-medium" style={{ color: COLORS.ink }}>{ev.title}</p>
+                    <p className="text-xs font-mono" style={{ color: COLORS.muted }}>
+                      {formatDateTime(ev.datetime)} ・ {ev.location} ・ {ev.feeType === 'free' ? '免費' : `NT$${ev.price}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setExpanded(expanded === ev.id ? null : ev.id)} className="text-xs underline" style={{ color: COLORS.forest }}>
+                      已報名 {eventRegs.length} 人
+                    </button>
+                    <button onClick={() => removeEvent(ev.id)} aria-label="刪除場次"><Trash2 size={16} color={COLORS.stamp} /></button>
+                  </div>
+                </div>
+                {expanded === ev.id && (
+                  <div className="mt-2 pt-2 text-xs flex flex-col gap-1" style={{ borderTop: `1px dashed ${COLORS.paperDark}`, color: COLORS.ink }}>
+                    {eventRegs.length === 0 && <span style={{ color: COLORS.muted }}>尚無報名資料</span>}
+                    {eventRegs.map((r, i) => (
+                      <div key={r.id} className="flex flex-wrap gap-x-3 gap-y-0.5 font-mono py-1" style={{ borderBottom: `1px dotted ${COLORS.paperDark}` }}>
+                        <span style={{ color: COLORS.muted }}>#{i + 1}</span>
+                        <span><strong>姓名：</strong>{r.realName}</span>
+                        <span className="flex items-center gap-1"><Phone size={12} />{r.phone}</span>
+                        {r.note && <span style={{ color: COLORS.muted }}>備註：{r.note}</span>}
+                        <span style={{ color: COLORS.muted }}>{new Date(r.createdAt).toLocaleString('zh-TW')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 達人講座（需登入） ============ */
+function ExpertsSection({ profile, onRequestLogin }) {
+  const [events, setEvents] = useState(null);
+  const [registerFor, setRegisterFor] = useState(null);
+  const [registered, setRegistered] = useState({});
+
+  useEffect(() => { load(); }, []);
+  async function load() {
+    const arr = await getJSON('expert-events', true, []);
+    arr.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    setEvents(arr);
+  }
+  async function handleRegister(form) {
+    const list = await getJSON('event-registrations', true, []);
+    await fsAdd('event-registrations', { id: String(Date.now()), eventId: registerFor.id, eventTitle: registerFor.title, ...form, createdAt: Date.now() });
+    setRegistered((prev) => ({ ...prev, [registerFor.id]: true }));
+    setRegisterFor(null);
+  }
+
+  return (
+    <SectionWrap title="達人講座專區" subtitle="不定期邀請業界達人開課，免費／付費場次線上即可報名">
+      <RequireLogin profile={profile} onRequestLogin={onRequestLogin}>
+        {events === null && <LoadingRow />}
+        {events && events.length === 0 && <EmptyState text="目前尚無排定場次，敬請期待後續公告。" />}
+        {events && events.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {events.map((ev) => <EventCard key={ev.id} ev={ev} onRegister={() => setRegisterFor(ev)} registered={!!registered[ev.id]} />)}
+          </div>
+        )}
+        {registerFor && <RegisterModal event={registerFor} onClose={() => setRegisterFor(null)} onSubmit={handleRegister} />}
+        <AdminGate>
+          <ExpertAdminForm events={events || []} onSaved={load} />
+        </AdminGate>
+      </RequireLogin>
+    </SectionWrap>
+  );
+}
+
+/* ============ 好用工具（需登入） ============ */
+function ToolEmbed({ title, url, desc, onOpen }) {
+  return (
+    <div className="rounded-lg overflow-hidden flex flex-col" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+      <div className="p-4">
+        <h3 className="font-display text-lg font-bold" style={{ color: COLORS.ink }}>{title}</h3>
+        <p className="text-sm mb-2" style={{ color: '#6b5d4f' }}>{desc}</p>
+        <button onClick={onOpen} className="text-sm font-mono flex items-center gap-1" style={{ color: COLORS.forest }}>
+          開新視窗開啟 <ExternalLink size={14} />
+        </button>
+      </div>
+      <iframe src={url} title={title} loading="lazy" style={{ width: '100%', height: '320px', border: 'none', borderTop: `1px solid ${COLORS.paperDark}` }} />
+    </div>
+  );
+}
+function ToolAdminForm({ tools, onSaved }) {
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [url, setUrl] = useState('');
+  async function add(e) {
+    e.preventDefault();
+    if (!name.trim() || !url.trim()) return;
+    await fsAdd('download-tools', { id: String(Date.now()), name: name.trim(), description: desc.trim(), url: url.trim() });
+    setName(''); setDesc(''); setUrl('');
+    onSaved();
+  }
+  async function remove(id) {
+    const toolDoc = tools.find(t => t.id === id);
+    if (toolDoc && toolDoc._docId) await fsDel('download-tools', toolDoc._docId);
+    else await fsDelWhere('download-tools', 'id', id);
+    onSaved();
+  }
+  return (
+    <div className="flex flex-col gap-4">
+      <h4 className="font-display font-bold" style={{ color: COLORS.ink }}>新增下載工具</h4>
+      <form onSubmit={add} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Field label="工具名稱" value={name} onChange={setName} placeholder="例如：選股篩選器 v2" />
+        <Field label="下載連結" value={url} onChange={setUrl} placeholder="https://..." />
+        <label className="flex flex-col gap-1 text-sm md:col-span-2" style={{ color: COLORS.ink }}>
+          <span className="font-medium">說明</span>
+          <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} className="rounded px-3 py-2 text-sm" style={{ border: `1px solid ${COLORS.paperDark}`, background: '#fff' }} />
+        </label>
+        <button type="submit" className="md:col-span-2 rounded py-2 font-display font-bold flex items-center justify-center gap-2" style={{ background: COLORS.brass, color: COLORS.ink }}>
+          <Plus size={18} /> 新增工具
+        </button>
+      </form>
+      <div className="flex flex-col gap-2">
+        {tools.map((t) => (
+          <div key={t.id} className="flex items-center justify-between rounded p-2" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+            <span className="text-sm" style={{ color: COLORS.ink }}>{t.name}</span>
+            <button onClick={() => remove(t.id)} aria-label="刪除工具"><Trash2 size={16} color={COLORS.stamp} /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function ToolsSection({ profile, onRequestLogin, onSaveProfile }) {
+  const [tools, setTools] = useState(null);
+  const [pending, setPending] = useState(null); // { name, action: fn(email) }
+  useEffect(() => { load(); }, []);
+  async function load() { setTools(await getJSON('download-tools', true, [])); }
+
+  function gateAccess(itemName, action) {
+    if (profile.email) {
+      logAccess({ email: profile.email, username: profile.username, itemType: 'tool', itemName });
+      action();
+    } else {
+      setPending({ name: itemName, action });
+    }
+  }
+  async function confirmEmail(email) {
+    await onSaveProfile({ ...profile, email });
+    logAccess({ email, username: profile.username, itemType: 'tool', itemName: pending.name });
+    const act = pending.action;
+    setPending(null);
+    act();
+  }
+
+  return (
+    <SectionWrap title="股市好用工具專區" subtitle="即時新聞看板、ETF跟單系統與下載型工具">
+      <RequireLogin profile={profile} onRequestLogin={onRequestLogin}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+          <ToolEmbed title="影響股市即時新聞" url={TOOL_NEWS_URL} desc="彙整可能牽動盤勢的即時新聞，掌握第一手消息。"
+            onOpen={() => gateAccess('影響股市即時新聞', () => window.open(TOOL_NEWS_URL, '_blank', 'noopener,noreferrer'))} />
+          <ToolEmbed title="績優主動式ETF個股跟單系統" url={TOOL_ETF_URL} desc="追蹤主動式ETF持股動態，掌握法人布局方向。"
+            onOpen={() => gateAccess('績優主動式ETF個股跟單系統', () => window.open(TOOL_ETF_URL, '_blank', 'noopener,noreferrer'))} />
+        </div>
+        <h3 className="font-display text-xl font-bold mb-3" style={{ color: COLORS.ink }}>下載程式工具</h3>
+        {tools === null && <LoadingRow />}
+        {tools && tools.length === 0 && <EmptyState text="管理者尚未上架下載工具，敬請期待。" />}
+        {tools && tools.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {tools.map((t) => (
+              <button key={t.id} onClick={() => gateAccess(t.name, () => window.open(t.url, '_blank', 'noopener,noreferrer'))}
+                className="text-left rounded p-4 flex flex-col gap-1 transition hover:shadow-lg" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+                <span className="font-medium flex items-center gap-2" style={{ color: COLORS.ink }}><Download size={16} /> {t.name}</span>
+                {t.description && <span className="text-sm" style={{ color: '#6b5d4f' }}>{t.description}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+        <AdminGate>
+          <ToolAdminForm tools={tools || []} onSaved={load} />
+        </AdminGate>
+        {pending && (
+          <EmailGateModal profile={profile} itemName={pending.name} onClose={() => setPending(null)} onConfirm={confirmEmail} />
+        )}
+      </RequireLogin>
+    </SectionWrap>
+  );
+}
+
+/* ============ 後台統計：訪客人次 ============ */
+function VisitorStats() {
+  const [visits, setVisits] = useState(null);
+  useEffect(() => {
+    (async () => {
+      const list = await getJSON('visits', true, []);
+      setVisits(list);
+    })();
+  }, []);
+
+  if (!visits) return <LoadingRow />;
+
+  const now = Date.now();
+  const dayAgo = now - 86400000;
+  const weekAgo = now - 7 * 86400000;
+  const monthAgo = now - 30 * 86400000;
+
+  const today = visits.filter(v => v.ts > dayAgo).length;
+  const week  = visits.filter(v => v.ts > weekAgo).length;
+  const month = visits.filter(v => v.ts > monthAgo).length;
+  const total = visits.length;
+
+  const stats = [
+    { label: '今日', value: today, color: COLORS.forest },
+    { label: '本週（7天）', value: week, color: COLORS.brass },
+    { label: '本月（30天）', value: month, color: COLORS.stamp },
+    { label: '累計（6個月）', value: total, color: COLORS.muted },
+  ];
+
+  // 最近30天每天人次
+  const dayMap = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now - i * 86400000);
+    const key = d.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+    dayMap[key] = 0;
+  }
+  visits.filter(v => v.ts > monthAgo).forEach(v => {
+    const key = new Date(v.ts).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+    if (key in dayMap) dayMap[key]++;
+  });
+  const dayLabels = Object.keys(dayMap);
+  const dayValues = Object.values(dayMap);
+  const maxVal = Math.max(...dayValues, 1);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h4 className="font-display font-bold" style={{ color: COLORS.ink }}>登入訪客人次統計（不含部落格公開區）</h4>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded p-3 text-center" style={{ border: `1px solid ${COLORS.paperDark}` }}>
+            <p className="text-3xl font-display font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs mt-1" style={{ color: COLORS.muted }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
+      <div>
+        <p className="text-sm font-medium mb-2" style={{ color: COLORS.ink }}>近 30 天每日人次</p>
+        <div className="flex items-end gap-0.5" style={{ height: 80 }}>
+          {dayValues.map((v, i) => (
+            <div key={i} title={`${dayLabels[i]}：${v} 人`} className="flex-1 rounded-t transition-all"
+              style={{ height: `${(v / maxVal) * 100}%`, minHeight: v > 0 ? 4 : 1, background: v > 0 ? COLORS.forest : COLORS.paperDark }} />
+          ))}
+        </div>
+        <div className="flex justify-between text-xs mt-1 font-mono" style={{ color: COLORS.muted }}>
+          <span>{dayLabels[0]}</span><span>{dayLabels[14]}</span><span>{dayLabels[29]}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============ 後台總覽頁 ============ */
+function AdminDashboard() {
+  return (
+    <SectionWrap title="後台管理" subtitle="管理者工具・訪客統計・報名名單・存取紀錄">
+      <AdminGate>
+        <div className="flex flex-col gap-8">
+          <VisitorStats />
+          <div style={{ borderTop: `1px dashed ${COLORS.paperDark}`, paddingTop: '1.5rem' }}>
+            <h4 className="font-display font-bold mb-3 flex items-center gap-2" style={{ color: COLORS.ink }}>
+              <Users size={18} /> 報名名單快覽
+            </h4>
+            <AllRegistrations />
+          </div>
+          <div style={{ borderTop: `1px dashed ${COLORS.paperDark}`, paddingTop: '1.5rem' }}>
+            <h4 className="font-display font-bold mb-3 flex items-center gap-2" style={{ color: COLORS.ink }}>
+              <Download size={18} /> 會員下載／工具使用紀錄
+            </h4>
+            <AccessLogs />
+          </div>
+        </div>
+      </AdminGate>
+    </SectionWrap>
+  );
+}
+
+function AccessLogs() {
+  const [logs, setLogs] = useState(null);
+  const [filter, setFilter] = useState('');
+  useEffect(() => {
+    (async () => { setLogs(await getJSON('access-logs', true, [])); })();
+  }, []);
+  if (!logs) return <LoadingRow />;
+  if (logs.length === 0) return <EmptyState text="目前尚無下載或工具使用紀錄。" />;
+  const sorted = [...logs].sort((a, b) => b.ts - a.ts);
+  const filtered = filter.trim()
+    ? sorted.filter(l => (l.email || '').includes(filter) || (l.username || '').includes(filter) || (l.itemName || '').includes(filter))
+    : sorted;
+  return (
+    <div className="flex flex-col gap-3">
+      <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="搜尋 Email / 會員名稱 / 項目名稱"
+        className="rounded px-3 py-2 text-sm font-mono" style={{ border: `1px solid ${COLORS.paperDark}` }} />
+      <p className="text-xs" style={{ color: COLORS.muted }}>共 {filtered.length} 筆（總計 {logs.length} 筆）</p>
+      <div className="flex flex-col gap-1 text-xs font-mono max-h-96 overflow-y-auto">
+        <div className="grid grid-cols-5 gap-2 font-bold pb-1 sticky top-0" style={{ color: COLORS.muted, borderBottom: `1px solid ${COLORS.paperDark}`, background: COLORS.paper }}>
+          <span>時間</span><span>會員名稱</span><span>Email</span><span>類型</span><span>項目</span>
+        </div>
+        {filtered.map((l, i) => (
+          <div key={i} className="grid grid-cols-5 gap-2 py-1" style={{ borderBottom: `1px dotted ${COLORS.paperDark}`, color: COLORS.ink }}>
+            <span style={{ color: COLORS.muted }}>{new Date(l.ts).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{l.username || '—'}</span>
+            <span style={{ wordBreak: 'break-all' }}>{l.email || '—'}</span>
+            <span>{l.itemType === 'resource' ? '心得分享' : '工具'}</span>
+            <span>{l.itemName}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AllRegistrations() {
+  const [regs, setRegs] = useState(null);
+  const [events, setEvents] = useState([]);
+  useEffect(() => {
+    (async () => {
+      const r = await getJSON('event-registrations', true, []);
+      const e = await getJSON('expert-events', true, []);
+      setRegs(r);
+      setEvents(e);
+    })();
+  }, []);
+  if (!regs) return <LoadingRow />;
+  if (regs.length === 0) return <EmptyState text="目前尚無報名資料。" />;
+  const sorted = [...regs].sort((a, b) => b.createdAt - a.createdAt);
+  return (
+    <div className="flex flex-col gap-1 text-xs font-mono">
+      <div className="grid grid-cols-5 gap-2 font-bold pb-1" style={{ color: COLORS.muted, borderBottom: `1px solid ${COLORS.paperDark}` }}>
+        <span>報名時間</span><span>場次</span><span>姓名</span><span>電話</span><span>備註</span>
+      </div>
+      {sorted.map((r) => {
+        const ev = events.find(e => e.id === r.eventId);
+        return (
+          <div key={r.id} className="grid grid-cols-5 gap-2 py-1" style={{ borderBottom: `1px dotted ${COLORS.paperDark}`, color: COLORS.ink }}>
+            <span style={{ color: COLORS.muted }}>{new Date(r.createdAt).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{ev ? ev.title : r.eventTitle}</span>
+            <span>{r.realName}</span>
+            <span>{r.phone}</span>
+            <span style={{ color: COLORS.muted }}>{r.note || '—'}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ============ Footer ============ */
+function Footer() {
+  return (
+    <footer className="mt-6 py-8 text-center text-xs" style={{ background: COLORS.ink, color: '#8B96AC', borderTop: `1px solid ${COLORS.inkLight}` }}>
+      <p className="font-mono">© {new Date().getFullYear()} 第一名操盤日記．版權所有</p>
+      <p className="mt-1">內容僅供參考，不構成投資建議，投資前請自行評估風險。</p>
+    </footer>
+  );
+}
+
+/* ============ App ============ */
+function App() {
+  const [profile, setProfile] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState('home');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const p = await getJSON('member-profile', false, null);
+      setProfile(p);
+      setLoaded(true);
+    })();
+  }, []);
+
+  // 登入後記錄訪客（僅登入區才計入）
+  useEffect(() => {
+    if (profile) recordVisit();
+  }, [profile]);
+
+  // 瀏覽器歷史紀錄：讓手機「返回」鍵在頁面內切換分頁，而不是直接離開網站
+  useEffect(() => {
+    if (!history.state || !history.state.tab) {
+      history.replaceState({ tab: 'home' }, '');
+    }
+    function onPopState(e) {
+      const t = (e.state && e.state.tab) || 'home';
+      setTab(t);
+      setShowAuthGate(false);
+      setMenuOpen(false);
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  function navigateTab(t) {
+    if (t === '__login__') { setShowAuthGate(true); setMenuOpen(false); return; }
+    setTab(t);
+    setMenuOpen(false);
+    history.pushState({ tab: t }, '');
+  }
+
+  async function completeAuth(p) {
+    await setJSON('member-profile', p, false);
+    setProfile(p);
+    setShowAuthGate(false);
+    recordVisit();
+  }
+  async function saveProfile(p) {
+    await setJSON('member-profile', p, false);
+    setProfile(p);
+  }
+  async function logout() {
+    await deletePrivate('member-profile');
+    setProfile(null);
+  }
+  function requestLogin() { setShowAuthGate(true); }
+
+  if (!loaded) return <LoadingScreen />;
+
+  // 全頁 AuthGate（首次來訪或點登入按鈕）
+  if (showAuthGate) return <AuthGate onComplete={completeAuth} onBack={() => setShowAuthGate(false)} />;
+
+  return (
+    <div style={{ background: COLORS.ink, minHeight: '100vh' }}>
+      <GlobalStyle />
+      <Header profile={profile} tab={tab}
+        setTab={navigateTab}
+        onLogout={logout} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+      <main>
+        {tab === 'home' && <Home setTab={navigateTab} />}
+        {tab === 'blog' && <BlogSection />}
+        {tab === 'resources' && <ResourcesSection profile={profile} onRequestLogin={requestLogin} onSaveProfile={saveProfile} />}
+        {tab === 'experts' && <ExpertsSection profile={profile} onRequestLogin={requestLogin} />}
+        {tab === 'tools' && <ToolsSection profile={profile} onRequestLogin={requestLogin} onSaveProfile={saveProfile} />}
+        {tab === '__admin__' && <AdminDashboard />}
+      </main>
+      {/* 隱藏後台入口：Header 右鍵點擊「第一」印章 5 次可進入 */}
+      <div style={{ position: 'fixed', bottom: 16, right: 16 }}>
+        <AdminShortcut onEnter={() => navigateTab('__admin__')} />
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+/* 後台快捷入口：畫面右下角小按鈕點 5 下 */
+function AdminShortcut({ onEnter }) {
+  const [count, setCount] = useState(0);
+  const timer = useRef(null);
+  function tap() {
+    const next = count + 1;
+    if (next >= 5) { setCount(0); onEnter(); return; }
+    setCount(next);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCount(0), 3000);
+  }
+  return (
+    <button onClick={tap} title="管理者後台"
+      className="w-8 h-8 rounded-full flex items-center justify-center opacity-20 hover:opacity-60 transition-opacity"
+      style={{ background: COLORS.inkLight }}>
+      <BarChart2 size={14} color={COLORS.brass} />
+    </button>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
